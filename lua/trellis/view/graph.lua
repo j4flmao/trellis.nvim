@@ -920,7 +920,6 @@ end
 
 -- Decoration provider ----------------------------------------------------------------------
 
-local band = bit.band
 local char_pattern = "[^\128-\191][\128-\191]*"
 
 local function paint_graph(buf, row0, text, colors)

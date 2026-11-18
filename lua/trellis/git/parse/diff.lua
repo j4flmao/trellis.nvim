@@ -86,18 +86,14 @@ function M.parse(text)
     local consumed = false
     if hunk and (old_left > 0 or new_left > 0 or line:sub(1, 1) == "\\") then
       local c = line:sub(1, 1)
-      if c == " " then
+      -- An empty line is context too: some tools strip its leading space.
+      if c == " " or line == "" then
         old_left, new_left = old_left - 1, new_left - 1
       elseif c == "-" then
         old_left = old_left - 1
       elseif c == "+" then
         new_left = new_left - 1
-      elseif c == "\\" then -- "\ No newline at end of file"
-        -- counts unchanged
-      elseif line == "" then
-        -- Some tools strip the trailing space of empty context lines.
-        old_left, new_left = old_left - 1, new_left - 1
-      else
+      elseif c ~= "\\" then -- "\ No newline at end of file" leaves the counts unchanged
         hunk = nil
       end
       if hunk then

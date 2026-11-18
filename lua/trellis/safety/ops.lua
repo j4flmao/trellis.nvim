@@ -309,7 +309,7 @@ function M.restore(repo, target, side, kind)
     target = target.id,
     commands = restore_commands(target.refs, cur, cur_head, want, want_head, mode),
     files = files,
-    run = function(op)
+    run = function(this)
       for path, f in pairs(files or {}) do
         local blob = f.after
         local full = repo.root .. "/" .. path
@@ -328,9 +328,9 @@ function M.restore(repo, target, side, kind)
       end
       if side == "before" and target.stash then
         -- --index restores what was staged too; fall back to the content alone.
-        local e = backup.git(repo, argv.W28(target.stash, true), { op_id = op.id })
+        local e = backup.git(repo, argv.W28(target.stash, true), { op_id = this.id })
         if e then
-          e = backup.git(repo, argv.W28(target.stash), { op_id = op.id })
+          e = backup.git(repo, argv.W28(target.stash), { op_id = this.id })
         end
         if e then
           return "refs restored, but re-applying the saved changes failed: "

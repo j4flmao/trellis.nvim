@@ -10,16 +10,6 @@ local M = {}
 
 M.ns = vim.api.nvim_create_namespace("trellis.commit")
 
-local STATUS = {
-  A = "added",
-  M = "modified",
-  D = "deleted",
-  R = "renamed",
-  C = "copied",
-  T = "type",
-  U = "unmerged",
-}
-
 local function fmt_person(p)
   local date = os.date("%Y-%m-%d %H:%M", p.time) .. (p.tz and (" " .. p.tz) or "")
   return ("%s <%s>  %s"):format(p.name, p.email, date)

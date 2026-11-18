@@ -1,3 +1,4 @@
+--# selene: allow(incorrect_standard_library_use)
 -- GIT_EDITOR helper for planned commit messages (research R9).
 --
 --   GIT_EDITOR="<nvim> -l <helpers>/msg_editor.lua <gitdir> <msgdir>"
@@ -7,7 +8,7 @@
 -- line); for a squash/fixup chain, its head (the pick/reword/edit it folds into). If
 -- <msgdir>/<head-sha>.txt exists, it becomes the message; otherwise git's default message is
 -- left unchanged. Never reads stdin and never waits.
-local gitdir, msgdir, msgpath = _G.arg[1], _G.arg[2], _G.arg[3]
+local gitdir, msgdir, msgpath = arg[1], arg[2], arg[3]
 if not gitdir or not msgdir or not msgpath then
   io.stderr:write("trellis msg_editor: usage: msg_editor.lua <gitdir> <msgdir> <msg-path>\n")
   os.exit(2)

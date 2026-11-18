@@ -7,7 +7,7 @@ local M = {}
 ---@field run? fun(args: string[], cmd: table)
 
 --- Subcommand that runs a history action through the safety pipeline (actions/ui.lua).
-local function M_action(name, fn)
+local function M_action(_name, fn)
   return {
     milestone = "v0.4.0",
     run = function(args)

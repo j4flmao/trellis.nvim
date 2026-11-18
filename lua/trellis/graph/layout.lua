@@ -20,7 +20,7 @@
 ---     a connector row drawn with diagonals ("╱"), one step per commit.
 local M = {}
 
-local band, bor = bit.band, bit.bor
+local bor = bit.bor
 
 M.bits = {
   UP = 1,

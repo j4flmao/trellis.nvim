@@ -50,9 +50,12 @@ function M.start(root, args, opts)
   }
   runner.record(entry)
 
-  local wrap = opts.schedule == false and function(f)
-    return f
-  end or vim.schedule_wrap
+  local function wrap(f)
+    if opts.schedule == false then
+      return f
+    end
+    return vim.schedule_wrap(f)
+  end
 
   local on_records = wrap(opts.on_records)
   local on_exit = opts.on_exit and wrap(opts.on_exit) or function() end

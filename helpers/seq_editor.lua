@@ -1,3 +1,4 @@
+--# selene: allow(incorrect_standard_library_use)
 -- GIT_SEQUENCE_EDITOR helper (research R9, contracts/uri-and-buffers.md → Helpers).
 --
 --   GIT_SEQUENCE_EDITOR="<nvim> -l <helpers>/seq_editor.lua <planfile>"
@@ -5,7 +6,7 @@
 --
 -- Copies the planned todo over git's todo file. A missing plan file exits 1, so git aborts
 -- the rebase cleanly before doing anything.
-local planfile, todo = _G.arg[1], _G.arg[2]
+local planfile, todo = arg[1], arg[2]
 if not planfile or not todo then
   io.stderr:write("trellis seq_editor: usage: seq_editor.lua <planfile> <todo-path>\n")
   os.exit(2)

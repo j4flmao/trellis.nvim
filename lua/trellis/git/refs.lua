@@ -152,6 +152,7 @@ function M.labels(map, sha, opts)
   local head = map.head
   local attached = head and not head.detached and head.ref
   for _, r in ipairs(M.decorations(map, sha, opts)) do
+    -- selene: allow(empty_if)
     if r.kind == "head" and attached then
       -- shown on the branch
     elseif r.kind == "local" and r.name == attached then

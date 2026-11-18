@@ -343,6 +343,7 @@ function M.parse_lines(plan, lines)
             full = sha
           end
         end
+        -- selene: allow(empty_if)
         if ambiguous then
           -- reported above
         elseif not full then

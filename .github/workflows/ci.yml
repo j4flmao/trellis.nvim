@@ -63,9 +63,12 @@ jobs:
         if: matrix.git == 'min' && steps.cache-git.outputs.cache-hit != 'true'
         run: |
           if [ "$RUNNER_OS" = "Linux" ]; then sudo apt-get update -q && sudo apt-get install -yq zlib1g-dev; fi
-          curl -fsSL "https://mirrors.edge.kernel.org/pub/software/scm/git/git-$GIT_MIN.tar.gz" | tar xz
+          curl -fsSL --retry 5 --retry-delay 5 --retry-all-errors -o git.tar.gz "https://mirrors.edge.kernel.org/pub/software/scm/git/git-$GIT_MIN.tar.gz"
+          tar xzf git.tar.gz
           cd "git-$GIT_MIN"
+          # git 2.30 predates C23, where `thread_local` became a keyword: build it as gnu17.
           make -j"$(getconf _NPROCESSORS_ONLN)" prefix="$HOME/.local/git-$GIT_MIN" \
+            CFLAGS="-O2 -std=gnu17" \
             NO_GETTEXT=YesPlease NO_TCLTK=YesPlease NO_CURL=YesPlease NO_EXPAT=YesPlease \
             NO_PERL=YesPlease NO_PYTHON=YesPlease install
 
