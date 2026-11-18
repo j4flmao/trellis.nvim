@@ -1,0 +1,13 @@
+# Test dependencies, isolated XDG dirs, built fixture repos (see tests/minimal_init.lua)
+/.tests/
+
+# Generated help tags
+/doc/tags
+
+# Benchmark output
+/bench-results/
+
+# Editors / OS
+*.swp
+.DS_Store
+Thumbs.db

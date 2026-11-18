@@ -1,0 +1,63 @@
+name: Data loss
+description: trellis lost commits, moved refs unexpectedly, or discarded uncommitted changes. Top priority.
+labels: [data-loss]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Your work is very likely recoverable. Before anything else, do not run `git gc` or
+        `git reflog expire`.** Then:
+
+        ```sh
+        git for-each-ref refs/trellis/backup/   # backups trellis wrote before the operation
+        :Trellis ops                            # restore an operation's "before" state
+        git reflog                              # git's own history of HEAD
+        ```
+
+        Issues with this label are fixed before any other work (target: 72 h).
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What was lost or changed
+      multiple: true
+      options:
+        - Commits disappeared from a branch
+        - A ref moved to the wrong commit
+        - Uncommitted changes were discarded
+        - "`:Trellis undo` did not restore the previous state"
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: recovered
+    attributes:
+      label: Could you recover it?
+      options:
+        - Yes, from refs/trellis/backup or :Trellis ops
+        - Yes, from git reflog
+        - Not yet
+        - No
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What you did
+      description: The trellis operation (rebase plan, reset, cherry-pick, …) and the exact steps.
+    validations:
+      required: true
+  - type: textarea
+    id: ops
+    attributes:
+      label: ":Trellis ops and :Trellis log"
+      description: Journal entry of the operation and the git commands that ran.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: health
+    attributes:
+      label: ":checkhealth trellis"
+      render: text
+    validations:
+      required: true

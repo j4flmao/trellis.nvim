@@ -1,0 +1,586 @@
+*trellis.txt*  Git history you can walk through
+
+Author:  trellis.nvim contributors
+License: MIT
+
+==============================================================================
+CONTENTS                                                     *trellis-contents*
+
+  1. Introduction ............................ |trellis-intro|
+  2. Requirements ............................ |trellis-requirements|
+  3. Commands ................................ |trellis-commands|
+  4. The commit graph ........................ |trellis-graph|
+  5. Configuration ........................... |trellis-config|
+  6. Highlight groups ........................ |trellis-highlights|
+  7. Events .................................. |trellis-events|
+  8. Lua API ................................. |trellis-api|
+  9. Inspecting history ...................... |trellis-inspect|
+ 10. Blame and line history .................. |trellis-blame|
+ 11. Actions and undo ........................ |trellis-actions|
+ 12. Safety: what trellis writes ............. |trellis-safety|
+ 13. Rebase planner .......................... |trellis-rebase|
+ 14. Filters and search ...................... |trellis-filters|
+
+==============================================================================
+1. INTRODUCTION                                                 *trellis-intro*
+
+trellis.nvim turns git history into real Neovim buffers: a fast commit graph,
+commits and files at any revision, blame that travels back in time, and an
+interactive rebase you can see before you run it. Everything that rewrites
+history is backed up and undoable.
+
+This version (1.0 candidate) ships the commit graph, inspection (commit views, diffs,
+files at any revision, file history), blame time travel, history actions that
+can all be undone (|trellis-safety|), and the rebase planner (|trellis-rebase|). Commands of later milestones say which
+release brings them.
+
+trellis only drives the `git` command line. It never runs `git push`,
+`git gc`, `git prune` or `git reflog expire`.
+
+==============================================================================
+2. REQUIREMENTS                                          *trellis-requirements*
+
+- Neovim >= 0.11
+- git >= 2.30 on $PATH (2.38 for --update-refs, 2.40 for exact conflict
+  prediction; both are detected)
+- No other plugin. No setup() call is needed.
+
+Large repositories: a commit-graph file makes the first screen fast. Without
+one, trellis shows a provisional first screen and suggests writing it once:
+>
+    git commit-graph write --reachable
+<
+or |:Trellis-commit-graph|.
+
+==============================================================================
+3. COMMANDS                                                  *trellis-commands*
+
+                                                                    *:Trellis*
+:Trellis [graph] [{revs}] [{options}] [-- {paths}]
+    Open the commit graph of the repository of the current buffer (or the
+    current directory). Without {revs}, |trellis-config-graph.default_revs|
+    is used. {options} use git's spelling:
+      --author={pattern}  --since={date}  --until={date}  --grep={pattern}
+      -S{string}  -G{regex}  --first-parent  --date-order  --topo-order
+      --max-count={n}  -n {n}
+    Examples: >
+      :Trellis
+      :Trellis main feature/login
+      :Trellis --author=alice -- src/
+<
+                                                       *:Trellis-commit-graph*
+:Trellis commit-graph
+    Ask, then run `git commit-graph write --reachable`. trellis never writes
+    a commit-graph on its own unless `perf.write_commit_graph = true`.
+
+                                                             *:Trellis-commit*
+:Trellis commit [{rev}]
+    Commit view of {rev} (default HEAD). See |trellis-commit-view|.
+
+                                                               *:Trellis-diff*
+:Trellis diff {a} [{b}] [-- {path}]
+    Unified diff of {a}..{b}; without {b}, against the working tree.
+
+                                                               *:Trellis-show*
+:Trellis show {rev}:{path}
+    {path} as it was at {rev}. `:Trellis show :{path}` shows the index.
+
+                                                               *:Trellis-file*
+:Trellis file [{path}]
+    History of {path} (default: the current file), following renames.
+
+                                                              *:Trellis-blame*
+:Trellis blame
+    Toggle the blame column for the current window. See |trellis-blame|.
+
+                                                            *:Trellis-history*
+:[range]Trellis history
+    Commits that changed the lines of [range] (default: cursor line).
+
+                                                          *:Trellis-permalink*
+:[range]Trellis permalink
+    Copy a permalink to [range] of the current file (working copies link to
+    HEAD, with lines mapped through uncommitted changes).
+
+                                                           *:Trellis-actions*
+:Trellis checkout {rev}           branch, or any revision (detached HEAD)
+:Trellis branch {name} [{rev}]    create;  `-m {old} {new}` rename;  `-D {name}`
+:Trellis tag {name} [{rev}] [-m {message}]      `-d {name}` delete
+:Trellis cherry-pick [-x] {rev}...
+:Trellis revert {rev}
+:Trellis reset --soft|--mixed|--hard {rev}
+:Trellis restore {rev} [-- {path}]   write that version of the file (default:
+                                  the current trellis:// buffer) to the working copy
+:Trellis undo / redo              undo or redo the last trellis operation
+:Trellis rebase {base}           open the rebase planner (|trellis-rebase|)
+:Trellis continue / skip / abort  an in-progress rebase, cherry-pick or revert
+:Trellis ops [prune]              the operation journal / delete old backups
+:Trellis log                      every git command trellis ran
+
+Other subcommands (rebase,
+continue, skip, abort, checkout, branch, tag, cherry-pick, revert, reset,
+restore, undo, redo, ops, log, permalink) are listed by completion and arrive
+in later releases; running them now says which one.
+
+==============================================================================
+4. THE COMMIT GRAPH                                             *trellis-graph*
+
+The graph is a normal buffer (`filetype=trellisgraph`): `/`, `n`, marks,
+the jumplist, `yy` and visual mode work as usual. Each commit row reads
+>
+    <graph> <short sha> (<refs>) <subject>          <author>  <date>
+<
+Author and date are right-aligned virtual text, so searches match the graph,
+sha, refs and subject only. Rows between commits draw how lanes branch,
+merge and shift.
+
+Refs are distinguishable without color:                     *trellis-refs*
+    @main       HEAD, attached to branch main ("@HEAD" when detached)
+    main        local branch
+    ~origin/x   remote-tracking branch
+    #v1.0       tag
+    &wt         HEAD of another worktree
+    $stash      stash (when `graph.show_stashes`)
+    !backup     trellis backup ref (when `graph.show_backups`)
+    ^grafted    shallow-clone boundary
+    +3          more refs than `graph.max_decorations`
+
+History streams in while you read. Only about `perf.prefetch_rows` rows
+beyond what you have scrolled to are loaded; git pauses until you scroll
+further. `G` loads everything (the winbar shows progress) and <C-c> stops
+loading. The graph refreshes by itself when the repository changes outside
+Neovim and keeps the cursor on the same commit.
+
+The winbar shows the repository, active filters, the commit count ("+" while
+loading) and the loading state.
+
+                                                        *trellis-graph-keys*
+Default buffer-local keys (remap or disable them, see |trellis-keymaps|):
+
+    J  K        next / previous commit row (skips connector rows)
+    ]b  [b      next / previous commit with refs
+    gH          jump to HEAD (loads more history if needed)
+    G           load all history and go to the oldest commit;
+                {count}G still goes to line {count}
+    gy  gY      copy short / full sha (to "" and "+)
+    gL          copy the commit's permalink
+    <CR>        open the commit view (reuses its window)
+    <Tab>       toggle the commit's files and stats under its row
+    o           open a file of this commit at that revision
+    d           diff of the commit against its first parent
+    <Space>     mark the commit; again to unmark
+    =           diff the marked commit against this one
+    R           refresh
+    <C-c>       stop loading
+    q           close the graph
+    g?          show these keys
+
+    c           cherry-pick the commit (visual mode: every selected commit,
+                applied oldest first)
+    x           revert the commit
+    gco         checkout (offers the commit's branches or a detached HEAD)
+    gb  gA      create a branch / a tag here
+    gR          reset the checked-out branch to here (soft, mixed or hard)
+    u           undo the last trellis operation
+    gr          rebase planner with this commit as the base
+    F           edit the filters (|trellis-filters|)
+    g/          search the whole history (|trellis-search|)
+
+Keys trellis never maps in any view: m ' ` y gt gT.
+
+==============================================================================
+5. CONFIGURATION                                               *trellis-config*
+
+`require("trellis").setup(opts)` is optional. Unknown keys are reported with
+a suggestion; invalid values keep the default. Per-repository overrides:
+`vim.g.trellis_repo_config = { ["/path/to/repo"] = { ... } }`.
+
+Defaults (graph-related): >lua
+    require("trellis").setup({
+      git = {
+        cmd = "git",
+        timeout_ms = 30000,        -- per short command; streams have none
+      },
+      graph = {
+        style = "rounded",         -- "ascii" | "unicode" | "rounded" | "flog-symbols"
+        order = "topo",            -- "topo" | "date"
+        default_revs = { "--branches", "--remotes", "--tags", "HEAD" },
+        show_stashes = false,
+        show_backups = false,
+        max_lanes = 40,            -- extra lanes collapse into one column
+        date_format = "relative",  -- "relative" | "iso" | strftime pattern
+        max_decorations = 3,
+        open = "tab",              -- "tab" | "vertical" | "horizontal" | "current"
+      },
+      perf = {
+        page_size = 2000,          -- lines appended per main-loop tick
+        prefetch_rows = 3000,      -- rows kept loaded beyond the deepest viewed row
+        fast_first_screen = true,  -- provisional first screen without commit-graph
+        write_commit_graph = false,
+      },
+      keymaps = true,              -- false disables every default key
+    })
+<
+Other options:
+    perf.details_cache = 512       commit details kept in memory (LRU)
+    views.commit.split = "vertical" where <CR> in the graph opens commits
+    views.diff.side_by_side = "auto" |trellis-diff-adapters|
+    views.filerev.max_size         bytes above which a revision shows a
+                                   metadata page (5 MB)
+    blame.*                        |trellis-blame|
+    rebase.*                       |trellis-rebase|
+    safety.*                       |trellis-safety|
+    permalink.*                    |trellis-permalink|
+Accepted but not implemented yet (no effect in this version):
+    graph.columns                  choosing and ordering row columns
+    views.filerev.lsp              attaching LSP clients to revisions
+    debug                          invariant assertions in the graph engine
+
+`graph.style`: with 'ambiwidth' set to "double", box-drawing glyphs are two
+cells wide and trellis falls back to "ascii". "flog-symbols" currently looks
+like "rounded".
+
+                                                             *trellis-keymaps*
+`keymaps` is `true`, `false`, or a table per view of action name to key
+(`false` disables one): >lua
+    keymaps = { graph = { yank_sha = "<leader>y", load_all_end = false } }
+<
+Graph action names: help close cancel refresh next_commit prev_commit
+next_ref prev_ref goto_head load_all_end yank_sha yank_full_sha.
+
+==============================================================================
+6. HIGHLIGHT GROUPS                                        *trellis-highlights*
+
+All groups are defined with `default = true`; override them in your config or
+colorscheme.
+
+    TrellisGraph1 … TrellisGraph8   lane colors (cycled)
+    TrellisHead                     HEAD decoration
+    TrellisBranchLocal              local branch
+    TrellisBranchRemote             remote branch, "+N"
+    TrellisTag                      tag
+    TrellisStash                    stash
+    TrellisWorktree                 other worktree's HEAD
+    TrellisBackup                   trellis backup ref
+    TrellisGrafted                  shallow boundary
+    TrellisSha                      short sha
+    TrellisAuthor  TrellisDate      right-aligned author and date
+    TrellisSubject                  subject
+    TrellisFilter                   winbar filter chips
+    TrellisMarked                   graph row marked with <Space>
+    TrellisPreview                  <Tab> inline preview lines
+    TrellisBlameAge0 … 4            blame heat, newest to oldest
+    TrellisBlameUncommitted         "Not committed yet" lines
+    TrellisPlanAction               action word in the rebase plan
+    TrellisPlanDrop                 dropped lines
+    TrellisPlanRisk                 "may conflict" markers
+    TrellisPlanConflict             predicted conflicts
+    TrellisPlanPublished            commits already on a remote
+    TrellisPreviewChanged           preview commits that get a new hash
+    TrellisCommitNode, TrellisSubject   defined for colorschemes; not used
+                                    yet (nodes take their lane color)
+
+==============================================================================
+7. EVENTS                                                      *trellis-events*
+
+`User` autocmds with `data`:
+
+    TrellisGraphOpened     { bufnr, root }
+    TrellisGraphLoaded     { bufnr, rows, complete }   on every page
+    TrellisRefsChanged     { root, generation }
+    TrellisCommitOpened    { bufnr, sha }
+    TrellisOperationStarted   { id, kind, title }
+    TrellisOperationFinished  { id, kind, status, before, after }
+    TrellisConflict        { op_id }   an operation stopped on a conflict
+
+==============================================================================
+8. LUA API                                                        *trellis-api*
+
+require("trellis").setup({opts})                            *trellis.setup()*
+    Validate and merge configuration. Returns a list of problems.
+
+require("trellis").graph({opts})                            *trellis.graph()*
+    Open the graph. {opts}: `args` (|:Trellis| arguments), `query`
+    (a GraphQuery table), `split`, `cwd`.
+
+require("trellis").commit({rev}, {opts})                   *trellis.commit()*
+require("trellis").diff({a}, {b}, {opts})                    *trellis.diff()*
+    {opts}: `path`, `side_by_side`.
+require("trellis").file_at({rev}, {path}, {opts})         *trellis.file_at()*
+require("trellis").file_history({path}, {opts})      *trellis.file_history()*
+require("trellis").blame()                                  *trellis.blame()*
+require("trellis").line_history({l1}, {l2})          *trellis.line_history()*
+require("trellis").permalink({opts}, {cb})              *trellis.permalink()*
+    {opts}: `sha` (a commit link; without it, lines of the current file),
+    `path`, `line1`, `line2`. Copies the URL and passes it to {cb}.
+require("trellis").rebase({base}, {opts})                   *trellis.rebase()*
+    Open the planner. {opts}: `update_refs`, `autosquash` (true/false/"auto").
+require("trellis").continue({opts}, {cb})                 *trellis.continue()*
+require("trellis").skip({opts}, {cb})                         *trellis.skip()*
+require("trellis").abort({opts}, {cb})                       *trellis.abort()*
+    The in-progress rebase, cherry-pick or revert.
+
+Actions (|trellis-actions|); each takes an optional {cb}(op, err) as last
+argument, otherwise the outcome is notified:
+require("trellis").checkout({rev}, {opts}, {cb})         *trellis.checkout()*
+require("trellis").branch_create({name}, {rev}, {opts}, {cb})
+                                                     *trellis.branch_create()*
+require("trellis").branch_rename({old}, {new}, {opts}, {cb})
+                                                     *trellis.branch_rename()*
+require("trellis").branch_delete({name}, {opts}, {cb})  *trellis.branch_delete()*
+require("trellis").tag_create({name}, {rev}, {opts}, {cb}) *trellis.tag_create()*
+    {opts}.message makes an annotated tag.
+require("trellis").tag_delete({name}, {opts}, {cb})        *trellis.tag_delete()*
+require("trellis").cherry_pick({shas}, {opts}, {cb})      *trellis.cherry_pick()*
+require("trellis").revert({sha}, {opts}, {cb})                *trellis.revert()*
+require("trellis").reset({rev}, {mode}, {opts}, {cb})          *trellis.reset()*
+require("trellis").restore_file({sha}, {path}, {opts}, {cb})
+                                                      *trellis.restore_file()*
+require("trellis").undo({opts}, {cb})                           *trellis.undo()*
+require("trellis").redo({opts}, {cb})                           *trellis.redo()*
+require("trellis").restore_op({op_id}, {opts}, {cb})      *trellis.restore_op()*
+require("trellis").operations({opts})                    *trellis.operations()*
+    Journal entries, newest first ({opts}.limit, default 50).
+require("trellis").statusline()                        *trellis.statusline()*
+    " main · rebase 3/7" for the current buffer's repository; never runs git.
+require("trellis").register_diff_adapter({adapter})
+                                            *trellis.register_diff_adapter()*
+    Add a side-by-side adapter `{ name, available(), open(repo, a, b, opts) }`.
+    It is tried before the bundled ones when `views.diff.side_by_side` is
+    "auto", or used when that option names it.
+
+require("trellis").current()                              *trellis.current()*
+    `{ view = kind, sha?, path?, line? }` for the current buffer, or nil.
+    Never throws.
+
+==============================================================================
+9. INSPECTING HISTORY                                         *trellis-inspect*
+
+                                                         *trellis-commit-view*
+The commit view (`trelliscommit`) shows the sha, author, committer, refs,
+parents, signature, the full message and the changed files with stats.
+    <CR>   on a file: its unified diff; on a parent line: that commit
+    D      side-by-side diff of the file (|trellis-diff-adapters|)
+    o      the file at this revision
+    p      the first parent (or the parent under the cursor)
+    P      merges: choose the parent to diff against, or combined
+
+                                                             *trellis-filerev*
+`trellis://<sha>/<path>` buffers hold a file as it was at a commit, with
+the file's filetype (so Treesitter highlighting works). The content is what
+checkout would write (`git cat-file --filters`: eol and smudge filters
+applied), and saving it again reproduces the bytes exactly. `:e
+trellis://abc1234/src/x.lua` works with abbreviated shas; `trellis://:0/x`
+is the index. `:w` is refused: such a buffer is history, not your file.
+Binary files and files larger than `views.filerev.max_size` (5 MB) show a
+metadata page; `go` opens them anyway.
+    ]r  [r   newer / older revision of this file (follows renames, keeps the
+             cursor on the corresponding line)
+    gW       the working-copy file at the corresponding line
+
+                                                       *trellis-diff-adapters*
+Side-by-side diffs (`views.diff.side_by_side`): "auto" picks a registered
+adapter, then diffview.nvim (`:DiffviewOpen`), then the built-in one: a new
+tab with both versions under |:diffthis|. "never" shows unified diffs only.
+Neovim 0.12's :DiffTool and codediff.nvim are not wired in yet; add them with
+|trellis.register_diff_adapter()|.
+
+                                                        *trellis-filehistory*
+`:Trellis file` lists every commit that changed a file, following renames.
+    <CR>   commit view
+    o      the file at that revision (]r / [r then walk this list)
+    d      that commit's diff of the file
+
+==============================================================================
+10. BLAME AND LINE HISTORY                                      *trellis-blame*
+
+`:Trellis blame` opens a column left of the current window, bound to it with
+'scrollbind' and 'cursorbind', and puts the cursor in it. Each line shows
+the commit that last changed the file line next to it; colors go from new
+(TrellisBlameAge0) to old (TrellisBlameAge4). In a working copy, the buffer
+text is blamed as it is, so unsaved edits read "Not committed yet", and the
+column updates as you edit.
+
+Time travel:
+    [      show the file as it was just before the commit that last changed
+           this line, with the cursor on the corresponding line, and blame
+           that version; keep pressing to walk the line back to its creation
+    ]      forward again, back to where you started
+    <CR>   commit view of the line's commit
+    d      that commit's diff of this file
+    t      cycle what the column shows
+    q      close (or :Trellis blame again)
+The trail ("worktree → 1a2b3c4 → 9f8e7d6") is in the file window's winbar.
+Renames are followed.
+
+Options (`blame` table): `ignore_whitespace` (-w, default true),
+`detect_moves` (false | "file" = -M | "copies" = -C), `ignore_revs_file`
+("auto" uses .git-blame-ignore-revs when present), `width`, `heat`.
+
+                                                        *trellis-linehistory*
+`:[range]Trellis history` lists every commit that changed the range, newest
+first, each with its hunk (one fold per commit). <CR> opens the commit, `o`
+the file at that revision and line. Code moved within a file starts a new
+history at the commit that moved it (that is how `git log -L` works).
+
+                                                          *trellis-permalink*
+Permalinks use the `permalink.remote` remote (default "origin"). Built-in
+forges: GitHub, GitLab, Gitea/Forgejo/Codeberg, Bitbucket. Others: >lua
+    permalink = { patterns = {
+      ["git%.example%.com"] = "{base}/blob/{sha}/{path}#L{line1}-L{line2}",
+    } }
+<
+Placeholders: {base} {host} {repo} {sha} {path} {line1} {line2}. A table
+`{ file = ..., commit = ... }` gives separate templates.
+
+==============================================================================
+11. ACTIONS AND UNDO                                          *trellis-actions*
+
+Every action follows the same steps:
+  1. checks: no rebase/merge/cherry-pick in progress; a clean worktree for
+     cherry-pick and revert; the branch is not checked out in another worktree
+  2. a preview and a confirmation (`safety.confirm`: "always", "destructive"
+     — the default — or "never"); `reset --hard` and deleting an unmerged
+     branch always ask you to type "y"
+  3. backup refs and a journal entry (|trellis-safety|), then git
+
+`:Trellis undo` restores the state before the newest operation; `:Trellis
+redo` re-applies what you undid, until you run a new operation. Undo and
+redo are journaled operations too. If the repository changed since (refs moved
+outside trellis), undo shows how and asks before restoring. If undoing needs a
+clean worktree and yours has changes, trellis offers to `git stash push`
+them first; it never discards them.
+
+Conflicts: a cherry-pick or revert that stops on a conflict opens the conflict
+panel:
+    <CR>  open the file (conflict markers highlighted)
+    o  t  take ours / theirs for the file
+    a     mark resolved (git add; save the file first)
+    C S A continue / skip / abort
+    d     ours and theirs side by side
+Abort returns to exactly the state before the operation.
+
+`:Trellis ops` lists operations (time, status, title, refs before → after).
+`r` restores the state before the operation under the cursor, `u` undoes the
+last one, <Tab> shows each operation's git commands and backup refs, `P`
+prunes old backups (asking first). `:Trellis log` shows every git command with its duration, exit code
+and first error line.
+
+==============================================================================
+12. SAFETY: WHAT TRELLIS WRITES                                *trellis-safety*
+
+trellis only writes when you run an action. It then writes:
+
+  refs/trellis/backup/<op-id>/...
+      The value of every ref the operation may move, before it moves
+      (e.g. refs/trellis/backup/20261117T153012-4f2a/heads/main), plus
+      .../HEAD and, when uncommitted changes would be discarded (reset --hard),
+      .../stash (from `git stash create`; your stash list is not touched).
+      These refs keep the old commits alive. Inspect them with
+          git for-each-ref refs/trellis/
+          git log refs/trellis/backup/<op-id>/heads/main
+
+  <git common dir>/trellis/ops.jsonl
+      The journal: one JSON line per operation snapshot (refs before and after,
+      HEAD, the git commands run, status). Shared by all worktrees.
+
+Backup refs are real refs, so tools that use `--all` (git log --all, gitk,
+lazygit) show them. Hide them with `git log --exclude='refs/trellis/*' --all`.
+
+Removing them: `:Trellis ops prune` deletes the backups of operations older
+than `safety.backup_retention_days` (30) or beyond `safety.backup_max_ops`
+(200), after asking. To remove everything trellis wrote: >
+    git for-each-ref --format='delete %(refname)' refs/trellis/ | git update-ref --stdin
+    rm -r .git/trellis
+<
+(after that, earlier operations can no longer be undone).
+
+trellis never runs `git push`, `git gc`, `git prune`, `git reflog expire`,
+`git clean` or `git stash drop`, and never deletes a ref outside
+refs/trellis/ except as part of an operation you confirmed.
+Options (`safety` table): `confirm`, `autostash` ("ask", "always" or "never":
+uncommitted changes before a rebase), `backup_retention_days`, `backup_max_ops`,
+`auto_prune`.
+planner), `backup_retention_days`, `backup_max_ops`, `auto_prune`.
+
+==============================================================================
+13. REBASE PLANNER                                             *trellis-rebase*
+
+`gr` on a commit in the graph (or the commit view), or `:Trellis rebase
+{base}`, opens a plan for rebasing HEAD onto {base}: one line per commit,
+oldest first (`rebase.order = "newest_first"` mirrors the graph), and a
+preview of the resulting history on the right.
+
+The plan is a normal buffer: move lines with `dd`/`p`, `:m`, visual mode,
+macros or the mouse; change an action by editing its word; undo with `u`.
+Line format: `<action> <sha> <subject>` — pick reword edit squash fixup
+`fixup -C` (alias F) `fixup -c` drop, plus `exec <command>`, `break` and
+`update-ref <ref>`. Deleting a line drops the commit.
+
+    <M-j> <M-k>   move the line down / up
+    <M-p> <M-r> <M-e> <M-s> <M-f> <M-F> <M-d>
+                  pick / reword / edit / squash / fixup / fixup -C / drop
+    <M-x> <M-b>   insert exec / break below
+    <M-t>         fixup into…: choose a target, the line moves under it
+    <M-m>         write the message (reword, or the head of a squash chain)
+                  in a split; `:w` there saves it
+    <CR>          commit view of the line's commit
+    :w  <C-CR>    run the plan (after a summary)
+    ZQ  :q!       close without running
+
+While you edit:
+  - invalid lines get diagnostics (unknown commit, a commit twice, a squash
+    with nothing to fold into)
+  - the preview shows the history after the rebase; commits that get a new
+    hash are highlighted, folded commits are counted, dropped ones listed
+  - predicted conflicts are marked "⚠ conflict in <file>" (git ≥ 2.40:
+    exact, computed with `git merge-tree` without touching your files) or
+    "⚠ may conflict" (older git, or reordered commits touching the same lines)
+  - commits already on a remote are marked "published": rewriting them needs
+    a force-push, which trellis never does
+
+Running: trellis refuses a stale plan (HEAD moved since it was made) and, for
+uncommitted changes, offers git's --autostash. It then runs `git rebase -i`
+itself, supplying only the todo and your messages, so hooks, signing and
+update-ref behave exactly as in git. A conflict, `edit` or `break` stops in
+the conflict panel (|trellis-actions|); `:Trellis continue | skip | abort`
+work too, abort restoring the exact previous state. `:Trellis undo` after the
+rebase puts the branch (and stacked branches moved by update-ref lines) back.
+
+Options (`rebase` table): `order`, `update_refs` and `autosquash` (true,
+false or "auto": follow rebase.updateRefs / rebase.autoSquash), `predict`,
+`predict_max`, `keep_drafts_days`. `rebase_merges` plans are not supported
+yet.
+
+==============================================================================
+14. FILTERS AND SEARCH                                        *trellis-filters*
+
+Narrow the graph with |:Trellis| arguments, or press `F` in the graph to edit
+them (prefilled; an empty line shows everything again):
+    {revs}            branches, tags, ranges (default: all branches, remotes,
+                      tags and HEAD, see `graph.default_revs`)
+    -- {paths}        only commits that change these paths
+    --author= --since= --until= --grep=   as in git log
+    -S{text} -G{regex}                    commits adding/removing text
+    -i                case-insensitive --grep
+    --first-parent  --date-order  --max-count={n}
+Active filters show as chips in the winbar. The cursor stays on its commit
+when that commit is still in the result.
+
+Path filters use git's history simplification: lines connect each commit to
+the nearest shown ancestor. Other filters (author, dates, grep, pickaxe) keep
+only matching commits; trellis draws the edges between commits that are both
+shown once the result is complete (until then the rows are unconnected).
+Large pickaxe searches stream with a progress count; <C-c> stops them.
+
+                                                               *trellis-search*
+`g/` searches the whole history of the graph's revisions and paths, not just
+the loaded rows. Plain text searches commit messages (case-insensitive unless
+it contains an uppercase letter); `-S{text}` / `-G{regex}` search changes.
+Results stream into a buffer:
+    <CR>   show the commit in the graph (loads history up to it)
+    o      commit view
+    <C-c>  stop the search
+`/` in the graph still searches the loaded rows as usual.
+
+ vim:tw=78:ts=8:ft=help:norl:

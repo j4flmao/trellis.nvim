@@ -1,0 +1,30 @@
+name: Wrong history
+description: The graph, a commit view, blame, or a rebase preview shows history that does not match git.
+labels: [wrong-history]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Wrong-history bugs preempt feature work. A command that shows what git itself reports
+        (for example `git log --graph --oneline <revs>`) next to what trellis shows is the most
+        useful thing you can add.
+  - type: textarea
+    id: what
+    attributes:
+      label: What trellis shows vs. what git shows
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction or fixture recipe
+      description: Public repository + commit, or a script that builds a small repository.
+    validations:
+      required: true
+  - type: textarea
+    id: health
+    attributes:
+      label: ":checkhealth trellis"
+      render: text
+    validations:
+      required: true

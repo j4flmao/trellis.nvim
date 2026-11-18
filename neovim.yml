@@ -1,0 +1,11 @@
+# selene standard library definition for Neovim's Lua runtime (LuaJIT + `vim` global).
+base: lua51
+name: neovim
+lua_versions:
+  - luajit
+
+globals:
+  vim:
+    any: true
+  jit:
+    any: true

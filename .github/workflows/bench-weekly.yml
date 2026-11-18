@@ -1,0 +1,52 @@
+name: Weekly benchmark
+
+# Performance budgets (Constitution III, spec SC-002) on a Linux kernel clone and on the
+# 200k-commit synthetic repository. Results are written to the job summary.
+
+on:
+  schedule:
+    - cron: "0 3 * * 1" # Mondays 03:00 UTC
+  workflow_dispatch:
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: rhysd/action-setup-vim@v1
+        with:
+          neovim: true
+          version: stable
+
+      # Commits and trees only (blob:none) keep the cache small; graph benchmarks never read blobs.
+      - name: Restore kernel clone
+        id: cache-linux
+        uses: actions/cache/restore@v4
+        with:
+          path: linux
+          key: linux-clone-v1
+
+      - name: Clone or update kernel
+        run: |
+          if [ -d linux/.git ]; then
+            git -C linux fetch --quiet origin
+          else
+            git clone --quiet --filter=blob:none --no-checkout https://github.com/torvalds/linux linux
+          fi
+
+      - name: Save kernel clone
+        if: steps.cache-linux.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: linux
+          key: linux-clone-v1
+
+      - name: Synthetic 200k repo benchmarks
+        run: ./scripts/test.sh bench
+
+      - name: Kernel benchmarks
+        env:
+          BENCH_WRITE_COMMIT_GRAPH: "1"
+        run: ./scripts/bench_kernel.sh linux

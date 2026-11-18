@@ -1,0 +1,2 @@
+# Lint config for `selene lua helpers` (std definition in neovim.yml).
+std = "neovim"

@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GIT_MIN: "2.30.0" # Constitution: Technical Constraints
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: JohnnyMorganz/stylua-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          version: latest
+          args: --check lua tests helpers plugin
+      - uses: NTBBloodbath/selene-action@v1.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          version: 0.28.0
+          args: lua helpers plugin
+
+  test:
+    name: test (${{ matrix.os }}, nvim ${{ matrix.nvim }}, git ${{ matrix.git }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        nvim: [stable, nightly]
+        git: [min, latest]
+        include:
+          # Minimum supported Neovim (Constitution: Neovim >= 0.11.0)
+          - os: ubuntu-latest
+            nvim: v0.11.0
+            git: min
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: rhysd/action-setup-vim@v1
+        with:
+          neovim: true
+          version: ${{ matrix.nvim }}
+
+      # --- git: minimum version, built from source and cached -------------------------------
+      - name: Cache git ${{ env.GIT_MIN }}
+        if: matrix.git == 'min'
+        id: cache-git
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/git-${{ env.GIT_MIN }}
+          key: git-${{ env.GIT_MIN }}-${{ runner.os }}-${{ runner.arch }}-v1
+
+      - name: Build git ${{ env.GIT_MIN }}
+        if: matrix.git == 'min' && steps.cache-git.outputs.cache-hit != 'true'
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then sudo apt-get update -q && sudo apt-get install -yq zlib1g-dev; fi
+          curl -fsSL "https://mirrors.edge.kernel.org/pub/software/scm/git/git-$GIT_MIN.tar.gz" | tar xz
+          cd "git-$GIT_MIN"
+          make -j"$(getconf _NPROCESSORS_ONLN)" prefix="$HOME/.local/git-$GIT_MIN" \
+            NO_GETTEXT=YesPlease NO_TCLTK=YesPlease NO_CURL=YesPlease NO_EXPAT=YesPlease \
+            NO_PERL=YesPlease NO_PYTHON=YesPlease install
+
+      - name: Use git ${{ env.GIT_MIN }}
+        if: matrix.git == 'min'
+        run: echo "$HOME/.local/git-$GIT_MIN/bin" >> "$GITHUB_PATH"
+
+      # --- git: latest release -----------------------------------------------------------------
+      - name: Install latest git
+        if: matrix.git == 'latest'
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            sudo add-apt-repository -y ppa:git-core/ppa && sudo apt-get update -q && sudo apt-get install -yq git
+          else
+            brew install git
+          fi
+
+      - name: Versions
+        run: |
+          nvim --version | head -1
+          git --version
+
+      - name: Cache test dependencies
+        uses: actions/cache@v4
+        with:
+          path: .tests/deps
+          key: test-deps-${{ hashFiles('tests/minimal_init.lua') }}
+
+      - name: Test (unit + integration + e2e)
+        run: ./scripts/test.sh ci

@@ -1,0 +1,43 @@
+name: Bug report
+description: Something does not work as documented.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If trellis lost commits, moved a branch unexpectedly, or discarded uncommitted changes,
+        use the **Data loss** template instead; it is handled first.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: |
+        Steps from a fresh repository are best. A fixture recipe is ideal, e.g.
+        `git init; git commit --allow-empty -m a; git switch -c b; ...` then the trellis keys.
+    validations:
+      required: true
+  - type: textarea
+    id: health
+    attributes:
+      label: ":checkhealth trellis"
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: ":Trellis log"
+      description: The git commands trellis ran around the failure.
+      render: text
+  - type: input
+    id: terminal
+    attributes:
+      label: Terminal, font, OS
+      placeholder: kitty 0.39, JetBrains Mono, macOS 15
