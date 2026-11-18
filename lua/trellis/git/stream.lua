@@ -93,6 +93,7 @@ function M.start(root, args, opts)
       if pending ~= "" then
         local last = pending
         pending = ""
+        -- selene: allow(mismatched_arg_count)
         on_records({ last })
       end
       finish()
@@ -110,6 +111,7 @@ function M.start(root, args, opts)
     end
     pending = data:sub(start)
     if #records > 0 then
+      -- selene: allow(mismatched_arg_count)
       on_records(records)
     end
   end

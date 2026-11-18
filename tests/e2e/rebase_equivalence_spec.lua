@@ -221,6 +221,7 @@ local PLANS = {
   },
   {
     "fixup -C",
+    needs = { 2, 32 },
     function(c)
       return {
         "pick " .. c[1],
@@ -234,6 +235,7 @@ local PLANS = {
   },
   {
     "fixup -C chain",
+    needs = { 2, 32 },
     function(c)
       return {
         "pick " .. c[1],
@@ -247,6 +249,7 @@ local PLANS = {
   },
   {
     "fixup -c with planned message",
+    needs = { 2, 32 },
     function(c)
       return {
         "pick " .. c[1],
@@ -396,6 +399,7 @@ local PLANS = {
   },
   {
     "update-ref keeps a stacked branch on its commit",
+    needs = { 2, 38 },
     function(c)
       return {
         "pick " .. c[1],
@@ -412,6 +416,7 @@ local PLANS = {
   },
   {
     "two update-refs while reordering",
+    needs = { 2, 38 },
     function(c)
       return {
         "pick " .. c[2],
@@ -609,6 +614,9 @@ T["equivalence with native rebase -i"] = MiniTest.new_set({
 T["equivalence with native rebase -i"]["plan"] = function(name)
   for _, p in ipairs(PLANS) do
     if p[1] == name then
+      if p.needs then
+        require("tests.helpers.gitver").require(p.needs, name)
+      end
       return run_case({ lines = p[2], messages = p.messages, stop = p.stop, refs = p.refs }, build)
     end
   end
@@ -626,11 +634,15 @@ T["autosquash plan equals git rebase -i --autosquash"] = function()
     return require("trellis.rebase.plan").from_range(repo, base, { autosquash = true })
   end)
   local lines = require("trellis.rebase.plan").to_lines(plan)
+  -- git < 2.32 has no `amend!` commits: the amend stays a pick (natively too).
+  local amend =
+    require("trellis.git.features").at_least(require("tests.helpers.gitver").version(), { 2, 32 })
   eq(
     vim.tbl_map(function(l)
       return l:match("^(%S+)")
     end, lines),
-    { "pick", "fixup", "fixup", "pick", "squash", "pick" }
+    amend and { "pick", "fixup", "fixup", "pick", "squash", "pick" }
+      or { "pick", "fixup", "pick", "squash", "pick", "pick" }
   )
   local entries, diags = require("trellis.rebase.plan").parse_lines(plan, lines)
   local op, err = S.run(function()

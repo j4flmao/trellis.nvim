@@ -45,13 +45,15 @@ M.ACTION_WORD = {
 -- Autosquash ------------------------------------------------------------------------------------
 
 local MARKERS = { { "fixup! ", "fixup" }, { "squash! ", "squash" }, { "amend! ", "fixup_C" } }
+-- git < 2.32 knows no `amend!` commits: they stay ordinary picks.
+local MARKERS_OLD = { MARKERS[1], MARKERS[2] }
 
-local function strip_markers(subject)
+local function strip_markers(subject, markers)
   local action
   local changed = true
   while changed do
     changed = false
-    for _, m in ipairs(MARKERS) do
+    for _, m in ipairs(markers or MARKERS) do
       if subject:sub(1, #m[1]) == m[1] then
         subject = subject:sub(#m[1] + 1)
         action = action or m[2]
@@ -64,19 +66,24 @@ end
 
 --- Reorder "fixup! / squash! / amend!" commits after their target, like git's --autosquash.
 ---@param entries trellis.PlanEntry[]
+---@param opts? { amend?: boolean } amend = false: git < 2.32, `amend!` is not a marker
 ---@return trellis.PlanEntry[]
-function M.autosquash(entries)
+function M.autosquash(entries, opts)
+  local markers = (opts and opts.amend == false) and MARKERS_OLD or MARKERS
+  local function strip_markers_(s)
+    return strip_markers(s, markers)
+  end
   local out, placed = {}, {}
   local target_of = {}
   for i, e in ipairs(entries) do
-    local action, rest = strip_markers(e.subject or "")
+    local action, rest = strip_markers_(e.subject or "")
     if action and e.sha then
       -- Target: an earlier commit whose subject equals `rest`, else starts with it, else whose
       -- sha starts with it.
       local t
       for j = 1, i - 1 do
         local s = entries[j].subject or ""
-        if not strip_markers(s) and s == rest then
+        if not strip_markers_(s) and s == rest then
           t = j
           break
         end
@@ -85,7 +92,7 @@ function M.autosquash(entries)
         for j = 1, i - 1 do
           local s, sha = entries[j].subject or "", entries[j].sha or ""
           if
-            not strip_markers(s)
+            not strip_markers_(s)
             and (vim.startswith(s, rest) or (#rest >= 4 and vim.startswith(sha, rest)))
           then
             t = j
@@ -195,7 +202,7 @@ function M.from_range(repo, base_rev, opts)
     entries[#entries + 1] = { action = "pick", sha = sha, subject = subjects[sha] or "" }
   end
   if opts.autosquash then
-    entries = M.autosquash(entries)
+    entries = M.autosquash(entries, { amend = repo.features.fixup_amend ~= false })
   end
   if opts.update_refs and repo.refs then
     local with_refs = {}
@@ -225,6 +232,7 @@ function M.from_range(repo, base_rev, opts)
     messages = {},
     entries = entries,
     opts = opts,
+    features = repo.features,
     created_at = os.time(),
   }
 end
@@ -324,11 +332,17 @@ function M.parse_lines(plan, lines)
     diags[#diags + 1] = { lnum = lnum, severity = severity, message = message }
   end
   local have_commit = false
+  local f = plan.features or {}
   for _, lnum in ipairs(order) do
     local t = todo.parse_line(lines[lnum], { trellis_aliases = true })
     if t.kind == "error" then
       diag(lnum, "error", t.message)
     elseif t.kind == "entry" then
+      if (t.action == "fixup_C" or t.action == "fixup_c") and f.fixup_amend == false then
+        diag(lnum, "error", M.ACTION_WORD[t.action] .. " needs git >= 2.32")
+      elseif t.action == "update_ref" and f.update_refs == false then
+        diag(lnum, "error", "update-ref needs git >= 2.38")
+      end
       if t.action == "label" or t.action == "reset" or t.action == "merge" then
         diag(lnum, "error", t.action .. ": --rebase-merges plans are not supported yet")
       elseif M.COMMIT[t.action] then

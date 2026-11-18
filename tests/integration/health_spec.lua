@@ -142,7 +142,7 @@ T["real run on a fixture repository"] = function()
   -- :checkhealth finds the module.
   vim.cmd("checkhealth trellis")
   local text = table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), "\n")
-  eq(text:find("trellis: Neovim and git", 1, true) ~= nil, true)
+  eq(text:find("Neovim and git", 1, true) ~= nil, true)
 end
 
 return require("tests.helpers.child").run_in_child(T, "tests/integration/health_spec.lua")

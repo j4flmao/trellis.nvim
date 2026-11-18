@@ -49,6 +49,8 @@ function M.detect(version, commondir, object_format)
     supported = M.at_least(version, M.MIN),
     merge_tree_base = M.at_least(version, { 2, 40 }),
     update_refs = M.at_least(version, { 2, 38 }),
+    -- `fixup -C` / `fixup -c` todo commands and `amend!` autosquash commits
+    fixup_amend = M.at_least(version, { 2, 32 }),
     worktree_z = M.at_least(version, { 2, 36 }),
     commit_graph = objects ~= nil
       and (exists(objects .. "/commit-graph") or exists(objects .. "/commit-graphs")),

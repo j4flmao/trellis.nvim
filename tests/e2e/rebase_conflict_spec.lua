@@ -37,6 +37,7 @@ local CONFLICTING = { 1, 2, 4, 3, 5, 6 } -- "add remember me" before "style form
 T["prediction"] = MiniTest.new_set()
 
 T["prediction"]["exact: merge-tree flags the reordered commit and its path"] = function()
+  require("tests.helpers.gitver").require({ 2, 40 }, "git merge-tree --merge-base")
   local _, repo, plan = demo()
   local entries = plan_mod.parse_lines(plan, lines_with(plan, CONFLICTING))
   local risks = S.run(function()

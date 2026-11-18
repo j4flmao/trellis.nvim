@@ -158,6 +158,50 @@ T["plan"]["autosquash moves fixup!/squash!/amend! after their target"] = functio
   )
 end
 
+T["plan"]["git < 2.32: amend! is an ordinary pick"] = function()
+  local p = fake_plan(3, { "add form", "fixup! add form", "amend! add form" })
+  local out = plan_mod.autosquash(p.entries, { amend = false })
+  eq(
+    vim.tbl_map(function(e)
+      return e.action .. " " .. e.subject
+    end, out),
+    { "pick add form", "fixup fixup! add form", "pick amend! add form" }
+  )
+end
+
+T["plan"]["actions the installed git cannot run are errors"] = function()
+  local p = fake_plan(3)
+  p.features = { fixup_amend = false, update_refs = false }
+  local _, diags = plan_mod.parse_lines(p, {
+    "pick " .. short(1),
+    "fixup -C " .. short(2),
+    "update-ref refs/heads/x",
+    "fixup -c " .. short(3),
+  })
+  local errors = {}
+  for _, d in ipairs(diags) do
+    if d.severity == "error" then
+      errors[#errors + 1] = d.lnum .. " " .. d.message
+    end
+  end
+  eq(errors, {
+    "2 fixup -C needs git >= 2.32",
+    "3 update-ref needs git >= 2.38",
+    "4 fixup -c needs git >= 2.32",
+  })
+  -- With a new enough git (or unknown features), the same lines are fine.
+  p.features = { fixup_amend = true, update_refs = true }
+  local _, ok = plan_mod.parse_lines(p, {
+    "pick " .. short(1),
+    "fixup -C " .. short(2),
+    "update-ref refs/heads/x",
+    "fixup -c " .. short(3),
+  })
+  eq(#vim.tbl_filter(function(d)
+    return d.severity == "error"
+  end, ok), 0)
+end
+
 T["plan"]["chain head and summary"] = function()
   local p = fake_plan(4)
   local entries = plan_mod.parse_lines(

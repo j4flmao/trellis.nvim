@@ -149,6 +149,9 @@ function M.report(ctx)
     else
       H.info("git < 2.38: update-ref lines are not available in rebase plans")
     end
+    if f.fixup_amend == false then
+      H.info("git < 2.32: fixup -C / fixup -c and amend! commits are not available")
+    end
   end
 
   H.start("trellis: repository")
