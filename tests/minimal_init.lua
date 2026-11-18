@@ -29,6 +29,14 @@ end
 -- Deterministic git: no global/system config, no prompts, C locale for parsed output.
 vim.env.GIT_CONFIG_GLOBAL = is_windows and "NUL" or "/dev/null"
 vim.env.GIT_CONFIG_NOSYSTEM = "1"
+-- GIT_CONFIG_GLOBAL needs git >= 2.32; older git reads $HOME/.gitconfig (and the XDG file,
+-- already isolated above): give it an empty home.
+local home = tests_dir .. "/home"
+vim.fn.mkdir(home, "p")
+vim.env.HOME = home
+if is_windows then
+  vim.env.USERPROFILE = home
+end
 vim.env.GIT_TERMINAL_PROMPT = "0"
 -- Commits made by trellis itself (cherry-pick, revert, annotated tags) need an identity.
 vim.env.GIT_AUTHOR_NAME = "Trellis Test"
