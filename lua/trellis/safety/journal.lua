@@ -52,6 +52,9 @@ function M.lock(repo)
   vim.fn.mkdir(M.dir(repo), "p")
   local path = M.dir(repo) .. "/ops.lock"
   local deadline = uv.hrtime() + M.lock_timeout_ms * 1e6
+  -- The timeout is for one holder that keeps the lock too long, not for the total wait: when
+  -- the lock file changes (another append came and went), the clock restarts.
+  local seen
   while true do
     local fd = uv.fs_open(path, "wx", 420)
     if fd then
@@ -68,6 +71,13 @@ function M.lock(repo)
       end
     end
     local stat = uv.fs_stat(path)
+    if stat then
+      local id = ("%s:%s:%s"):format(stat.ino, stat.mtime.sec, stat.mtime.nsec)
+      if id ~= seen then
+        seen = id
+        deadline = uv.hrtime() + M.lock_timeout_ms * 1e6
+      end
+    end
     -- Only read the lock file when it may be stale: reading it while its owner tries to remove
     -- it would block the removal on Windows.
     if stat and os.time() - stat.mtime.sec > M.stale_lock_s then
@@ -83,7 +93,9 @@ function M.lock(repo)
       local holder = ok and type(info) == "table" and info.pid or nil
       return nil, ("journal is locked (%s)"):format(holder and ("pid " .. holder) or path)
     end
-    uv.sleep(5)
+    -- Jitter, so a waiter is not always polling in step with a holder that re-locks at once.
+    -- (math.random is unseeded: two processes would draw the same sequence; use the clock.)
+    uv.sleep(2 + math.floor(uv.hrtime() / 1000) % 7)
   end
 end
 
