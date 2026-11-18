@@ -17,13 +17,16 @@ end
 ---@param what string
 function M.require(req, what)
   if not features.at_least(M.version(), req) then
-    MiniTest.skip(
-      ("%s needs git >= %s (have %s)"):format(
-        what,
-        features.version_string(req),
-        features.version_string(M.version())
-      )
+    local reason = ("%s needs git >= %s (have %s)"):format(
+      what,
+      features.version_string(req),
+      features.version_string(M.version())
     )
+    if vim.g.trellis_test_child then
+      -- In a child Neovim: tests/helpers/child.lua turns this into a skip in the parent.
+      error({ trellis_skip = reason })
+    end
+    MiniTest.skip(reason)
   end
 end
 

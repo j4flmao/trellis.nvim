@@ -140,9 +140,21 @@ T["real run on a fixture repository"] = function()
   eq(has(out, "ok: Neovim"), true)
   eq(has(out, "## trellis: repository"), true)
   -- :checkhealth finds the module.
+  -- Newer Neovim may render :checkhealth asynchronously or in another window: wait for any
+  -- checkhealth buffer to show the section.
   vim.cmd("checkhealth trellis")
-  local text = table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), "\n")
-  eq(text:find("Neovim and git", 1, true) ~= nil, true)
+  local found = vim.wait(10000, function()
+    for _, b in ipairs(vim.api.nvim_list_bufs()) do
+      if vim.bo[b].filetype == "checkhealth" then
+        local text = table.concat(vim.api.nvim_buf_get_lines(b, 0, -1, false), "\n")
+        if text:find("Neovim and git", 1, true) then
+          return true
+        end
+      end
+    end
+    return false
+  end, 20)
+  eq(found, true)
 end
 
 return require("tests.helpers.child").run_in_child(T, "tests/integration/health_spec.lua")

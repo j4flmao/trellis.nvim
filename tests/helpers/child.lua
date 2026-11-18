@@ -19,7 +19,23 @@ local CHILD_CODE = [[
   for _, k in ipairs(path) do
     node = node[k]
   end
-  return node(unpack(args))
+  -- A case may skip itself (tests/helpers/gitver.lua) by raising { trellis_skip = reason };
+  -- other errors keep their traceback.
+  local ok, res = xpcall(function()
+    return node(unpack(args))
+  end, function(e)
+    if type(e) == "table" and e.trellis_skip then
+      return e
+    end
+    return debug.traceback(tostring(e), 2)
+  end)
+  if ok then
+    return res
+  end
+  if type(res) == "table" then
+    return res
+  end
+  error(res, 0)
 ]]
 
 local function wrap(set, path, child, spec)
@@ -34,6 +50,9 @@ local function wrap(set, path, child, spec)
       set[k] = function(...)
         child.restart({ "-u", "tests/minimal_init.lua" })
         local res = child.lua(CHILD_CODE, { spec, p, { ... } })
+        if type(res) == "table" and res.trellis_skip then
+          MiniTest.skip(res.trellis_skip)
+        end
         return res
       end
     elseif type(v) == "table" then
