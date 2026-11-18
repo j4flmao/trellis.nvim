@@ -11,6 +11,8 @@ concurrency:
 
 env:
   GIT_MIN: "2.30.0" # Constitution: Technical Constraints
+  MINI_REF: "v0.16.0" # keep in sync with tests/minimal_init.lua
+  TRELLIS_MINI_REF: "v0.16.0"
 
 jobs:
   lint:
@@ -49,6 +51,20 @@ jobs:
         with:
           neovim: true
           version: ${{ matrix.nvim }}
+
+      # Test dependencies are fetched with the runner's own git: the minimum git below is built
+      # without curl and cannot clone over https.
+      - name: Cache test dependencies
+        id: cache-deps
+        uses: actions/cache@v4
+        with:
+          path: .tests/deps
+          key: test-deps-mini-${{ env.MINI_REF }}
+
+      - name: Install test dependencies
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        run: |
+          git clone --quiet --depth=1 --branch "$MINI_REF" https://github.com/nvim-mini/mini.test .tests/deps/mini.test
 
       # --- git: minimum version, built from source and cached -------------------------------
       - name: Cache git ${{ env.GIT_MIN }}
@@ -90,12 +106,6 @@ jobs:
         run: |
           nvim --version | head -1
           git --version
-
-      - name: Cache test dependencies
-        uses: actions/cache@v4
-        with:
-          path: .tests/deps
-          key: test-deps-${{ hashFiles('tests/minimal_init.lua') }}
 
       - name: Test (unit + integration + e2e)
         run: ./scripts/test.sh ci
