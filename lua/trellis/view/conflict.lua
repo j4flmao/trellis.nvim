@@ -1,4 +1,4 @@
---- Guided conflict panel (FR-044, T076), shared by cherry-pick, revert and (Phase 7) rebase.
+--- Guided conflict panel, shared by cherry-pick, revert and rebase.
 ---
 ---   cherry-pick stopped on a conflict while applying a1b2c3d "subject"
 ---   ours = HEAD (main) · theirs = a1b2c3d (the commit being applied)

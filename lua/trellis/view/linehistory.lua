@@ -1,4 +1,4 @@
---- Line range history (US3, FR-032): `:[range]Trellis history` lists every commit that changed
+--- Line range history: `:[range]Trellis history` lists every commit that changed
 --- the selected lines (`git log -L`), each with the hunk for that range.
 local argv = require("trellis.git.argv")
 local base = require("trellis.view.base")

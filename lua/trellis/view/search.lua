@@ -1,4 +1,4 @@
---- `g/` in the graph: search the whole history (FR-014, T103), not just the loaded rows.
+--- `g/` in the graph: search the whole history, not just the loaded rows.
 ---
 --- Text searches commit messages (`--grep`, smart case); `-S<string>` / `-G<regex>` search
 --- content changes (pickaxe). Results stream into a buffer with progress in its winbar;

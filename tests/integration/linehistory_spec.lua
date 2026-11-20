@@ -1,4 +1,4 @@
--- T062 + T066: line range history (`git log -L`) and permalinks from file buffers.
+-- Line range history (`git log -L`) and permalinks from file buffers.
 local fixtures = require("tests.fixtures")
 
 local T = MiniTest.new_set()

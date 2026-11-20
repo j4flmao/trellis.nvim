@@ -204,6 +204,30 @@ M.subcommands = {
       require("trellis.view.ops").open_log()
     end,
   },
+  reflog = {
+    milestone = "v1.0.0",
+    run = function(args)
+      M.with_repo(function(repo)
+        require("trellis.view.reflog").open(repo, { ref = args[1] })
+      end)
+    end,
+  },
+  stash = {
+    milestone = "v1.0.0",
+    run = function()
+      M.with_repo(function(repo)
+        require("trellis.view.stash").open(repo)
+      end)
+    end,
+  },
+  pick = {
+    milestone = "v1.0.0",
+    run = function()
+      M.with_repo(function(repo)
+        require("trellis.pick").pick(repo)
+      end)
+    end,
+  },
   ops = {
     milestone = "v0.4.0",
     run = function(args)
@@ -237,7 +261,7 @@ M.subcommands = {
   },
 }
 
---- `:Trellis commit-graph`: asks, then runs W27 (never automatic, Constitution / FR spec US7).
+--- `:Trellis commit-graph`: asks, then runs W27 (never automatic).
 function M.commit_graph()
   require("trellis.git.repo").discover(vim.fn.getcwd(), function(err, repo)
     if err then

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run trellis.nvim test suites with mini.test (tasks.md T004).
+# Run trellis.nvim test suites with mini.test.
 #
 # Usage:
 #   scripts/test.sh                 unit + integration (default)

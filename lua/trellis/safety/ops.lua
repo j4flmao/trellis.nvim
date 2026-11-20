@@ -1,4 +1,4 @@
---- The safety pipeline for every ref-moving operation (plan.md → Safety pipeline, FR-060/061).
+--- The safety pipeline for every ref-moving operation.
 ---
 ---   snapshot refs + HEAD → (stash create) → backup refs → journal "running" → git commands
 ---   → snapshot "after" → journal "done" | "stopped" (conflict) | "failed"
@@ -34,6 +34,7 @@ end
 ---@field target? string                undo/redo/restore: the operation acted on
 ---@field may_stop? boolean             a conflict stops the operation instead of failing it
 ---@field run? fun(op: table): string?  extra steps after the commands (inside async)
+---@field applied? string               stash-apply: the stash commit applied
 
 --- Record the "after" state and final status.
 function M.finish(repo, op, status)
@@ -76,6 +77,7 @@ function M.run(repo, spec)
     target = spec.target,
     reset_mode = spec.reset_mode,
     files = spec.files,
+    applied = spec.applied,
     env = spec.env,
     plan_id = spec.plan_id,
     status = "running",
@@ -208,7 +210,63 @@ end
 --- Bring the repository to `target`'s "before" (undo, restore) or "after" (redo) state as a new
 --- journaled operation of `kind`. Inside async.run.
 ---@return table? op, string? err
+--- Undo / redo of a stash apply. Undo resets the worktree to HEAD, keeping whatever is there
+--- (the applied changes and anything since) in a backup stash first; redo applies again.
+local function restore_stash_apply(repo, target, side, kind)
+  local _, head = backup.read_refs(repo, {})
+  local recorded = target.after_head or {}
+  if head.sha ~= recorded.sha then
+    local ok = preflight.confirm({
+      title = "HEAD moved since this operation. Restore anyway?",
+      preview = {
+        ("  HEAD: %s → %s"):format((recorded.sha or "?"):sub(1, 7), (head.sha or "?"):sub(1, 7)),
+      },
+      destructive = true,
+      require_y = true,
+    })
+    if not ok then
+      return nil, "cancelled"
+    end
+  end
+  local dirty = preflight.status(repo)
+  local spec = {
+    kind = kind,
+    title = ("%s %s: %s"):format(kind, target.id, target.title),
+    refs = {},
+    target = target.id,
+    commands = {},
+  }
+  if side == "before" then
+    if dirty then
+      spec.stash = true
+      spec.commands = { argv.W25("hard", head.sha) }
+    end
+  else
+    if dirty then
+      return nil, "re-applying the stash needs a clean worktree (commit or stash first)"
+    end
+    spec.applied = target.applied
+    spec.run = function(op)
+      local e = backup.git(repo, argv.W28(target.applied, true), { op_id = op.id })
+      if e then
+        e = backup.git(repo, argv.W28(target.applied), { op_id = op.id })
+      end
+      return e
+    end
+  end
+  local op, err = M.run(repo, spec)
+  if op and op.status == "done" then
+    target.status = side == "before" and "undone" or "done"
+    target.restored_by = op.id
+    journal.append(repo, target)
+  end
+  return op, err
+end
+
 function M.restore(repo, target, side, kind)
+  if target.kind == "stash-apply" then
+    return restore_stash_apply(repo, target, side, kind)
+  end
   local want = side == "before" and target.before or target.after
   local want_head = side == "before" and target.before_head or target.after_head
   local other = side == "before" and target.after or target.before

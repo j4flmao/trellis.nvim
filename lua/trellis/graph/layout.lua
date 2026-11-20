@@ -1,4 +1,4 @@
---- Incremental lane layout engine (research R3). Pure Lua: no Neovim API, no I/O.
+--- Incremental lane layout engine. Pure Lua: no Neovim API, no I/O.
 ---
 --- Feed commits in a topological order (children before parents) with `push`; each call returns
 --- the rows to draw for that commit. The only state carried between commits is the lane array,
@@ -15,7 +15,7 @@
 ---     same commit; they converge on that commit's row.
 ---   * Each further parent gets one connector row with a single horizontal span from the
 ---     commit's lane: into a lane already waiting for that parent ("├─┤") or into a new lane
----     ("├─╮"). Farthest spans are drawn first, so new lanes never cross each other.
+--- ("├─╮"). Farthest spans are drawn first, so new lanes never cross each other.
 ---   * After a commit, if a lane in the middle is free, lanes to its right shift left by one on
 ---     a connector row drawn with diagonals ("╱"), one step per commit.
 local M = {}

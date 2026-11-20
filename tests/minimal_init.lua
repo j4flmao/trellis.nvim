@@ -1,4 +1,4 @@
--- Minimal, isolated init for the test suite (tasks.md T003).
+-- Minimal, isolated init for the test suite.
 --
 -- Used both by the test runner (`scripts/test.sh`) and by child Neovim instances started from
 -- tests (`MiniTest.new_child_neovim()` + `child.restart({ "-u", "tests/minimal_init.lua" })`).

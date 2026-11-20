@@ -117,10 +117,18 @@ or |:Trellis-commit-graph|.
 :Trellis ops [prune]              the operation journal / delete old backups
 :Trellis log                      every git command trellis ran
 
-Other subcommands (rebase,
-continue, skip, abort, checkout, branch, tag, cherry-pick, revert, reset,
-restore, undo, redo, ops, log, permalink) are listed by completion and arrive
-in later releases; running them now says which one.
+                                                            *:Trellis-reflog*
+:Trellis reflog [{ref}]
+    Where HEAD (or {ref}) has been, with lost commits marked. |trellis-reflog|
+
+                                                             *:Trellis-stash*
+:Trellis stash
+    The stash list: see and apply entries. |trellis-stash|
+
+                                                              *:Trellis-pick*
+:Trellis pick
+    Find a commit with your picker (Snacks, Telescope, fzf-lua or
+    |vim.ui.select()|). |trellis-pick|
 
 ==============================================================================
 4. THE COMMIT GRAPH                                             *trellis-graph*
@@ -193,6 +201,7 @@ Default buffer-local keys (remap or disable them, see |trellis-keymaps|):
     gr          rebase planner with this commit as the base
     F           edit the filters (|trellis-filters|)
     g/          search the whole history (|trellis-search|)
+    gp          find a commit with your picker (|trellis-pick|)
 
 Keys trellis never maps in any view: m ' ` y gt gT.
 
@@ -227,6 +236,10 @@ Defaults (graph-related): >lua
         fast_first_screen = true,  -- provisional first screen without commit-graph
         write_commit_graph = false,
       },
+      pick = {
+        backend = "auto",          -- "auto" | "snacks" | "telescope" | "fzf-lua" | "select"
+        limit = 20000,             -- newest commits offered to the picker
+      },
       keymaps = true,              -- false disables every default key
     })
 <
@@ -244,10 +257,6 @@ Other options:
     rebase.*                       |trellis-rebase|
     safety.*                       |trellis-safety|
     permalink.*                    |trellis-permalink|
-Accepted but not implemented yet (no effect in this version):
-    graph.columns                  choosing and ordering row columns
-    views.filerev.lsp              attaching LSP clients to revisions
-    debug                          invariant assertions in the graph engine
 
 `graph.style`: with 'ambiwidth' set to "double", box-drawing glyphs are two
 cells wide and trellis falls back to "ascii". "flog-symbols" currently looks
@@ -282,6 +291,8 @@ colorscheme.
     TrellisFilter                   winbar filter chips
     TrellisMarked                   graph row marked with <Space>
     TrellisUncommitted              "uncommitted changes" line above the graph
+    TrellisLink                     issue / pull request links in a commit view
+    TrellisReflogLost               "lost" marker in the reflog view
     TrellisPreview                  <Tab> inline preview lines
     TrellisBlameAge0 … 4            blame heat, newest to oldest
     TrellisBlameUncommitted         "Not committed yet" lines
@@ -355,6 +366,13 @@ require("trellis").redo({opts}, {cb})                           *trellis.redo()*
 require("trellis").restore_op({op_id}, {opts}, {cb})      *trellis.restore_op()*
 require("trellis").operations({opts})                    *trellis.operations()*
     Journal entries, newest first ({opts}.limit, default 50).
+require("trellis").reflog({ref}, {opts})                   *trellis.reflog()*
+    Open the reflog view of {ref} (default HEAD). |trellis-reflog|
+require("trellis").stash({opts})                             *trellis.stash()*
+    Open the stash list. |trellis-stash|
+require("trellis").pick({opts})                               *trellis.pick()*
+    Pick a commit; {opts}.backend overrides `pick.backend`, {opts}.on_choose
+    receives the full sha (default: open its commit view). |trellis-pick|
 require("trellis").statusline()                        *trellis.statusline()*
     " main · rebase 3/7" for the current buffer's repository; never runs git.
 require("trellis").register_diff_adapter({adapter})
@@ -373,7 +391,11 @@ require("trellis").current()                              *trellis.current()*
                                                          *trellis-commit-view*
 The commit view (`trelliscommit`) shows the sha, author, committer, refs,
 parents, signature, the full message and the changed files with stats.
-    <CR>   on a file: its unified diff; on a parent line: that commit
+Issue and pull request references in the message ("#12", "GH-12",
+"owner/repo#12", GitLab's "!12") are listed as links on the remote's forge
+(`permalink.remote`, `permalink.patterns` with an `issue` template).
+    <CR>   on a file: its unified diff; on a parent line: that commit; on a
+           link: open it in the browser (|vim.ui.open()|; `gx` works too)
     D      side-by-side diff of the file (|trellis-diff-adapters|)
     o      the file at this revision
     p      the first parent (or the parent under the cursor)
@@ -596,5 +618,39 @@ Results stream into a buffer:
     o      commit view
     <C-c>  stop the search
 `/` in the graph still searches the loaded rows as usual.
+
+==============================================================================
+15. REFLOG, STASH AND PICKER                                   *trellis-reflog*
+
+`:Trellis reflog [{ref}]` lists where HEAD (or {ref}) has been, newest first:
+the selector, the commit, what moved it ("reset: moving to HEAD~2") and when.
+Commits that no branch, tag, remote-tracking branch or HEAD reaches any more
+are marked `lost`: they are the ones a reset, rebase or deleted branch left
+behind, and git removes them eventually. Get one back with `gb`.
+    <CR>   commit view
+    gb     create a branch at the commit (undoable)
+    gco    check the commit out (undoable)
+    gy     copy the short sha
+    R      refresh
+    q      close
+
+                                                               *trellis-stash*
+`:Trellis stash` lists the stash entries.
+    <CR>   the entry's changes (diff against the commit it was made on)
+    a      apply it (needs a clean worktree; staged changes are restored when
+           possible). The entry stays on the stash list. `:Trellis undo` puts
+           the worktree back: what is there at that moment is first saved in a
+           backup stash, so nothing is lost.
+    R      refresh
+    q      close
+trellis never drops or clears stash entries (`git stash drop` is on its
+never-run list): use `git stash drop` yourself when you are done.
+
+                                                                *trellis-pick*
+`:Trellis pick` (`gp` in the graph) offers the newest `pick.limit` commits of
+the graph's default revisions in your picker. "auto" uses Snacks.picker when
+Snacks is loaded, then Telescope, then fzf-lua, then |vim.ui.select()|. The
+chosen commit is shown in the graph when the picker was opened from one,
+otherwise its commit view opens.
 
  vim:tw=78:ts=8:ft=help:norl:

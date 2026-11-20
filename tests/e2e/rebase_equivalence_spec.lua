@@ -1,4 +1,4 @@
--- T083 / SC-003: for every scripted plan, trellis's executor and native `git rebase -i` with the
+-- For every scripted plan, trellis's executor and native `git rebase -i` with the
 -- same todo produce identical trees and messages, and :Trellis undo restores the original refs
 -- and worktree exactly. Two byte-identical repositories are built per plan (fixed dates).
 local Repo = require("tests.helpers.repo")

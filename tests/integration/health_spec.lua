@@ -1,4 +1,4 @@
--- T111: :checkhealth trellis with mocked facts, plus a real run on a fixture.
+-- :checkhealth trellis with mocked facts, plus a real run on a fixture.
 local fixtures = require("tests.fixtures")
 
 local T = MiniTest.new_set()

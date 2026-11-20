@@ -1,4 +1,4 @@
--- T030 (rendering): what the user actually sees — right-aligned author/date virtual text,
+-- What the user actually sees — right-aligned author/date virtual text,
 -- winbar, lane colors from the decoration provider, monochrome readability. The parent
 -- process drives a child Neovim with an attached UI and inspects screenshots.
 local fixtures = require("tests.fixtures")

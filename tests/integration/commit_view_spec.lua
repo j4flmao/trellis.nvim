@@ -1,4 +1,4 @@
--- T045: commit view — metadata, refs, parents (jumpable), merge parent choice, renames,
+-- Commit view — metadata, refs, parents (jumpable), merge parent choice, renames,
 -- binary stats. Runs in a child Neovim per case.
 local fixtures = require("tests.fixtures")
 local I = require("tests.helpers.inspect")
@@ -179,6 +179,33 @@ T['views.diff.open = "split" keeps the old window per diff'] = function()
     true
   )
   eq(#vim.api.nvim_list_wins(), wins + 1)
+end
+
+T["issue and pull request references become links; <CR> opens them"] = function()
+  local r = fixtures.fresh("demo") -- origin is https://github.com/example/trellis-demo.git
+  r:commit({ msg = "Fix login crash (#42)\n\nCloses #7.\n", files = { ["x.txt"] = "x\n" } })
+  local repo = I.repo(r.path)
+  require("trellis.view.commit").open(repo, "HEAD", { split = "current" })
+  eq(I.wait_view("commit"), true)
+  local lnum, first = I.find_line("^Links:")
+  eq(first, "Links:      #42  https://github.com/example/trellis-demo/issues/42")
+  eq(I.lines()[lnum + 1], "            #7  https://github.com/example/trellis-demo/issues/7")
+  local opened
+  local orig = vim.ui.open
+  vim.ui.open = function(url)
+    opened = url
+  end
+  vim.api.nvim_win_set_cursor(0, { lnum + 1, 0 })
+  vim.cmd("normal \r")
+  vim.ui.open = orig
+  eq(opened, "https://github.com/example/trellis-demo/issues/7")
+  -- No remote: no links, the view still opens.
+  vim.cmd("bwipeout")
+  local plain = fixtures.fresh("linear")
+  plain:commit({ msg = "Refs #1", files = { ["y.txt"] = "y\n" } })
+  require("trellis.view.commit").open(I.repo(plain.path), "HEAD", { split = "current" })
+  eq(I.wait_view("commit"), true)
+  eq(I.find_line("^Links:"), nil)
 end
 
 T[":Trellis commit and the graph's <CR>"] = function()

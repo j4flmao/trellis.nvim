@@ -1,4 +1,4 @@
--- T060 (line mapping properties), permalink URLs (T066), line-log parsing (T065).
+-- Line mapping properties, permalink URLs, line-log parsing.
 local T = MiniTest.new_set()
 local eq = MiniTest.expect.equality
 local linemap = require("trellis.linemap")
@@ -92,6 +92,37 @@ T["permalink"]["remote URL forms"] = function()
     eq({ url = url, got = permalink.parse_remote(url) }, { url = url, got = want })
   end
   eq(permalink.parse_remote("not a url"), nil)
+end
+
+T["permalink"]["issue and pull request references in commit messages"] = function()
+  local function refs(msg, remote)
+    return vim.tbl_map(function(r)
+      return r.text .. " " .. r.url
+    end, permalink.references(msg, remote or "git@github.com:o/r.git"))
+  end
+  eq(refs("Fix crash (#42)\n\nCloses #7, see GH-9 and other/lib#3. Again #42."), {
+    "#42 https://github.com/o/r/issues/42",
+    "#7 https://github.com/o/r/issues/7",
+    "GH-9 https://github.com/o/r/issues/9",
+    "other/lib#3 https://github.com/other/lib/issues/3",
+  })
+  -- Not references: inside URLs, colors, anchors, words, HTML entities.
+  eq(refs("See https://github.com/o/r/pull/5#issuecomment-1 and color #fff, a#1, &#38; x#2y"), {})
+  -- GitLab: issues and merge requests.
+  eq(refs("Merge !12, fixes #3", "https://gitlab.com/g/p.git"), {
+    "!12 https://gitlab.com/g/p/-/merge_requests/12",
+    "#3 https://gitlab.com/g/p/-/issues/3",
+  })
+  -- Forges without an issue template, and unknown remotes: nothing.
+  eq(refs("#1", "git@bitbucket.org:t/r.git"), {})
+  eq(refs("#1", "https://git.example.com/a/b"), {})
+  eq(permalink.references("#1", nil), {})
+  -- At most 10.
+  local many = {}
+  for i = 1, 15 do
+    many[#many + 1] = "#" .. i
+  end
+  eq(#permalink.references(table.concat(many, " "), "git@github.com:o/r.git"), 10)
 end
 
 T["permalink"]["file and commit URLs per forge"] = function()

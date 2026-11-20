@@ -1,4 +1,4 @@
--- T011 + T014 (real outputs): every fixture builds, and the log/show/diff parsers agree with
+-- Every fixture builds, and the log/show/diff parsers agree with
 -- git's own view of each fixture.
 local fixtures = require("tests.fixtures")
 local argv = require("trellis.git.argv")

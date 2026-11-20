@@ -1,5 +1,5 @@
 --# selene: allow(incorrect_standard_library_use)
--- GIT_EDITOR helper for planned commit messages (research R9).
+-- GIT_EDITOR helper for planned commit messages.
 --
 --   GIT_EDITOR="<nvim> -l <helpers>/msg_editor.lua <gitdir> <msgdir>"
 --   git runs it as: ... msg_editor.lua <gitdir> <msgdir> <msg-path>

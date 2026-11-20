@@ -1,4 +1,4 @@
---- `User` autocmd events (contracts/lua-api.md → User events).
+--- `User` autocmd events.
 local M = {}
 
 M.names = {

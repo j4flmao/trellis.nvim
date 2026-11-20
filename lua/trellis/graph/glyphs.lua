@@ -1,4 +1,4 @@
---- Cell bit sets → characters, per glyph style (research R13). Every glyph is one display cell,
+--- Cell bit sets → characters, per glyph style. Every glyph is one display cell,
 --- so a lane is always exactly two cells wide (lane column + gap column).
 local layout = require("trellis.graph.layout")
 local B = layout.bits

@@ -1,4 +1,4 @@
--- T070 (journal) and T071 (backup refs, undo/redo, dirty-worktree refusal, prune).
+-- Journal, backup refs, undo/redo, dirty-worktree refusal, prune.
 -- Runs in a child Neovim per case.
 local fixtures = require("tests.fixtures")
 local S = require("tests.helpers.safety")

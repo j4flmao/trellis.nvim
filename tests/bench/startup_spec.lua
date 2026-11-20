@@ -1,4 +1,4 @@
--- T026 / Constitution III: sourcing plugin/trellis.lua costs < 1 ms and loads no trellis module.
+-- Constitution III: sourcing plugin/trellis.lua costs < 1 ms and loads no trellis module.
 local T = MiniTest.new_set()
 local eq = MiniTest.expect.equality
 

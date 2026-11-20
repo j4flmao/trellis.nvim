@@ -1,4 +1,4 @@
---- Public Lua API (contracts/lua-api.md). Functions of stories that are not implemented yet are
+--- Public Lua API. Functions of stories that are not implemented yet are
 --- added in their milestones; `setup` works now.
 local M = {}
 
@@ -232,6 +232,32 @@ end
 --- Statusline text for the current buffer's repository: " main · rebase 3/7". Never runs git
 --- (uses already-discovered repositories), so it is safe to call on every redraw.
 ---@return string
+--- Reflog of `ref` (default HEAD); lost commits are marked and can be brought back with `gb`.
+---@param ref? string
+---@param opts? { cwd?: string }
+function M.reflog(ref, opts)
+  with_repo(opts, function(repo)
+    require("trellis.view.reflog").open(repo, { ref = ref })
+  end)
+end
+
+--- The stash list (<CR> changes, `a` apply).
+---@param opts? { cwd?: string }
+function M.stash(opts)
+  with_repo(opts, function(repo)
+    require("trellis.view.stash").open(repo)
+  end)
+end
+
+--- Find a commit with Snacks, Telescope, fzf-lua or vim.ui.select (`pick.backend`).
+---@param opts? { cwd?: string, backend?: string, on_choose?: fun(sha: string) }
+function M.pick(opts)
+  opts = opts or {}
+  with_repo(opts, function(repo)
+    require("trellis.pick").pick(repo, { backend = opts.backend, on_choose = opts.on_choose })
+  end)
+end
+
 function M.statusline()
   local ok, text = pcall(function()
     local name = vim.api.nvim_buf_get_name(0)

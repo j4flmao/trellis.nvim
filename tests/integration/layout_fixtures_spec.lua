@@ -1,4 +1,4 @@
--- T020 (fixtures part), SC-001 for fixtures: the layout engine satisfies every invariant on the
+-- For fixtures: the layout engine satisfies every invariant on the
 -- real `git log --topo-order` of every fixture repository and of a 20k-commit synthetic repo.
 local fixtures = require("tests.fixtures")
 local check = require("tests.helpers.graph_check")

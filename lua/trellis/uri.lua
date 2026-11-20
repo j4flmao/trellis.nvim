@@ -1,4 +1,4 @@
---- `trellis://` buffer names (contracts/uri-and-buffers.md). Pure: parse and build only.
+--- `trellis://` buffer names. Pure: parse and build only.
 local M = {}
 
 M.scheme = "trellis://"

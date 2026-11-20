@@ -1,4 +1,4 @@
---- Operation journal: `<commondir>/trellis/ops.jsonl` (research R11, data-model Operation).
+--- Operation journal: `<commondir>/trellis/ops.jsonl`.
 ---
 --- Append-only JSON lines. Every write appends a full snapshot of one operation; readers fold
 --- lines by `id` (last line wins), so a status change is an append, never a rewrite, and a

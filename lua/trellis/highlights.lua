@@ -1,4 +1,4 @@
---- Highlight groups (contracts/lua-api.md → Highlight groups), all `default = true` so
+--- Highlight groups, all `default = true` so
 --- colorschemes and users can override them. Re-applied on :colorscheme.
 local M = {}
 
@@ -29,6 +29,8 @@ M.links = {
   TrellisFilter = "WarningMsg",
   TrellisMarked = "Visual",
   TrellisUncommitted = "DiagnosticWarn",
+  TrellisLink = "Underlined",
+  TrellisReflogLost = "DiagnosticWarn",
   -- Blame heat, newest (0) to oldest (4).
   TrellisBlameAge0 = "Title",
   TrellisBlameAge1 = "Identifier",

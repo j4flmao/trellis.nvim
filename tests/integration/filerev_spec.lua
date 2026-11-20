@@ -1,4 +1,4 @@
--- T046: file-at-revision buffers — byte-for-byte content (incl. CRLF and eol filters),
+-- File-at-revision buffers — byte-for-byte content (incl. CRLF and eol filters),
 -- filetype, binary/large guard, abbreviated sha resolution, :w refusal, ]r / [r stepping.
 local fixtures = require("tests.fixtures")
 local I = require("tests.helpers.inspect")

@@ -1,5 +1,4 @@
--- T029: no default buffer-local map shadows a protected built-in (Constitution IV keymap policy,
--- contracts/commands-keymaps-config.md).
+-- No default buffer-local map shadows a protected built-in (Constitution IV keymap policy).
 local keymaps = require("trellis.keymaps")
 
 local T = MiniTest.new_set()

@@ -1,4 +1,4 @@
--- T061: blame column — alignment with git's own blame, uncommitted lines, scrollbind,
+-- Blame column — alignment with git's own blame, uncommitted lines, scrollbind,
 -- time travel through a known 6-step edit chain, forward again, renames, -w/-M options.
 -- Runs in a child Neovim per case.
 local fixtures = require("tests.fixtures")

@@ -1,5 +1,4 @@
---- Graph model: commits and rendered rows in struct-of-arrays form (research R4, data-model
---- CommitStore/GraphModel). Layout row tables are rendered to strings and dropped immediately,
+--- Graph model: commits and rendered rows in struct-of-arrays form. Layout row tables are rendered to strings and dropped immediately,
 --- so a loaded row costs a text string, a packed color string and a few array slots.
 local glyphs = require("trellis.graph.glyphs")
 

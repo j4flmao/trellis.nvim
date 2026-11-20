@@ -1,4 +1,4 @@
---- Blame column with time travel (US3, FR-030/031, research R8).
+--- Blame column with time travel.
 ---
 --- `:Trellis blame` opens a scroll- and cursor-bound column left of the file window, filled by
 --- a streamed `git blame --incremental` (working copies blame the buffer text through

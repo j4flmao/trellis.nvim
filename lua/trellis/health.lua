@@ -1,4 +1,4 @@
---- `:checkhealth trellis` (US7, FR-074, T110).
+--- `:checkhealth trellis`.
 ---
 --- `gather()` collects facts (versions, features, the current repository, backups, journal);
 --- `report(ctx)` turns them into health messages, so tests can feed fake contexts.

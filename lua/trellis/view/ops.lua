@@ -1,4 +1,4 @@
---- `:Trellis ops` (operation journal) and `:Trellis log` (git command log), T078.
+--- `:Trellis ops` (operation journal) and `:Trellis log` (git command log).
 local base = require("trellis.view.base")
 local journal = require("trellis.safety.journal")
 local ops = require("trellis.safety.ops")

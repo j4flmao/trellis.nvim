@@ -1,6 +1,6 @@
 name: Weekly benchmark
 
-# Performance budgets (Constitution III, spec SC-002) on a Linux kernel clone and on the
+# Performance budgets (Constitution III, docs/perf.md) on a Linux kernel clone and on the
 # 200k-commit synthetic repository. Results are written to the job summary.
 
 on:

@@ -1,4 +1,4 @@
---- Diff views (FR-023): unified diff buffer (`git diff` output, filetype diff, one fold per
+--- Diff views: unified diff buffer (`git diff` output, filetype diff, one fold per
 --- file) and side-by-side through an adapter.
 local adapters = require("trellis.adapters.diff")
 local argv = require("trellis.git.argv")

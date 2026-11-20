@@ -1,4 +1,4 @@
--- T080 (plan model), T081 (simulate), T085 (helpers run via nvim -l).
+-- Plan model, simulation, and the rebase helpers run via nvim -l.
 local T = MiniTest.new_set()
 local eq = MiniTest.expect.equality
 local plan_mod = require("trellis.rebase.plan")

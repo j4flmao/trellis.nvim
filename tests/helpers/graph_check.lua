@@ -1,4 +1,4 @@
---- Invariant checker for graph/layout.lua output (data-model.md → Graph → Invariants).
+--- Invariant checker for graph/layout.lua output.
 ---
 --- Works on layout rows produced with `debug = true` (cells carry the parent shas their lines
 --- lead to). Checks:

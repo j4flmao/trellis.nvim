@@ -1,5 +1,5 @@
---- Commit graph view (US1): a real buffer filled by the loader in chunks, painted by a
---- decoration provider for visible lines only (research R4), refreshed by the repo watcher.
+--- Commit graph view: a real buffer filled by the loader in chunks, painted by a
+--- decoration provider for visible lines only, refreshed by the repo watcher.
 ---
 --- Buffer line `v.top + r` is model row r; `v.top` is 1 while the "uncommitted changes" line
 --- is shown above the graph, else 0. Commit rows read
@@ -677,6 +677,9 @@ local function handlers(v)
     toggle_preview = function()
       M.toggle_preview(v)
     end,
+    pick = function()
+      require("trellis.pick").pick(v.repo, { from_graph = v })
+    end,
     open_file = function()
       local sha = M.cursor_sha(v)
       if not sha then
@@ -1346,7 +1349,7 @@ end
 local suggested = {}
 local auto_pruned = {}
 
---- `safety.auto_prune = true`: prune old backups once per repository and session (FR-062),
+--- `safety.auto_prune = true`: prune old backups once per repository and session,
 --- without asking (the option is the consent).
 function M.maybe_auto_prune(repo, cfg)
   if not cfg.safety.auto_prune or auto_pruned[repo.commondir] then

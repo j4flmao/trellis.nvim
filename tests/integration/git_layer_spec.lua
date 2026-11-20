@@ -1,4 +1,4 @@
--- T015, T016, T018, T019: runner, stream, repository discovery, refs on fixture repositories.
+-- Runner, stream, repository discovery, refs on fixture repositories.
 local fixtures = require("tests.fixtures")
 local argv = require("trellis.git.argv")
 local runner = require("trellis.git.runner")

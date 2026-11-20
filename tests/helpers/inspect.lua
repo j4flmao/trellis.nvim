@@ -1,4 +1,4 @@
---- Helpers for US2 view tests (inside a child Neovim).
+--- Helpers for commit/file view tests (inside a child Neovim).
 local M = {}
 
 function M.repo(path)

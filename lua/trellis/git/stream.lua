@@ -1,4 +1,4 @@
---- Long-running git process with record splitting and pipe backpressure (research R2).
+--- Long-running git process with record splitting and pipe backpressure.
 ---
 --- `pause()` stops reading stdout; once the OS pipe buffer fills, git blocks on write, so a
 --- paused stream costs no CPU and memory only grows with what the consumer asked for.

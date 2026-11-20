@@ -1,4 +1,4 @@
--- T031: backpressure (rows loaded ≤ viewed + prefetch + in-flight batches), resume on scroll,
+-- Backpressure (rows loaded ≤ viewed + prefetch + in-flight batches), resume on scroll,
 -- G loads everything, <C-c> cancels. Runs in a child Neovim per case.
 local G = require("tests.helpers.graph")
 local Repo = require("tests.helpers.repo")

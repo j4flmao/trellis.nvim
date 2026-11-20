@@ -1,4 +1,4 @@
--- T030: graph view on fixtures — rows, decorations without color, special repositories,
+-- Graph view on fixtures — rows, decorations without color, special repositories,
 -- motions. Every case runs in its own child Neovim.
 local fixtures = require("tests.fixtures")
 local G = require("tests.helpers.graph")

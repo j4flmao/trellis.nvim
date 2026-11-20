@@ -1,4 +1,4 @@
---- Permalinks (T066): URLs to a commit or to lines of a file at a commit on the forge.
+--- Permalinks: URLs to a commit or to lines of a file at a commit on the forge.
 ---
 --- Built-in templates for GitHub, GitLab, Gitea/Forgejo/Codeberg and Bitbucket, chosen from
 --- the remote's host; `permalink.patterns` adds `{ ["host pattern"] = template }` entries
@@ -7,20 +7,26 @@
 local M = {}
 
 M.forges = {
+  -- `issue`: "#123" in commit messages (GitHub and Gitea redirect an issue URL to the pull
+  -- request when the number is one); `merge_request`: GitLab's "!123".
   github = {
     file = "{base}/blob/{sha}/{path}#L{line1}-L{line2}",
     line = "{base}/blob/{sha}/{path}#L{line1}",
     commit = "{base}/commit/{sha}",
+    issue = "{base}/issues/{n}",
   },
   gitlab = {
     file = "{base}/-/blob/{sha}/{path}#L{line1}-{line2}",
     line = "{base}/-/blob/{sha}/{path}#L{line1}",
     commit = "{base}/-/commit/{sha}",
+    issue = "{base}/-/issues/{n}",
+    merge_request = "{base}/-/merge_requests/{n}",
   },
   gitea = {
     file = "{base}/src/commit/{sha}/{path}#L{line1}-L{line2}",
     line = "{base}/src/commit/{sha}/{path}#L{line1}",
     commit = "{base}/commit/{sha}",
+    issue = "{base}/issues/{n}",
   },
   bitbucket = {
     file = "{base}/src/{sha}/{path}#lines-{line1}:{line2}",
@@ -110,6 +116,86 @@ function M.build(remote_url, o)
     url = url:gsub("#.*$", "")
   end
   return url
+end
+
+--- Issue / pull request references in a commit message, as links on the remote's forge:
+--- "#12", "GH-12", "owner/repo#12" (same host) and GitLab's "!12". At most 10, in order,
+--- without duplicates.
+---@param message string
+---@param remote_url string
+---@param patterns? table permalink.patterns
+---@return { text: string, url: string }[]
+function M.references(message, remote_url, patterns)
+  local r = remote_url and M.parse_remote(remote_url)
+  local forge = r and forge_for(r.host, patterns)
+  if not forge or not (forge.issue or forge.merge_request) then
+    return {}
+  end
+  local found, seen = {}, {}
+  local function add(pos, text, tpl, repo, n)
+    if not tpl then
+      return
+    end
+    local url = tpl:gsub("{(%w+)}", {
+      base = "https://" .. r.host .. "/" .. repo,
+      host = r.host,
+      repo = repo,
+      n = n,
+    })
+    if not seen[url] then
+      seen[url] = true
+      found[#found + 1] = { pos = pos, text = text, url = url }
+    end
+  end
+  -- Skip anything inside URLs ("…/pull/12#issuecomment-3", "…#L10").
+  local scan = message:gsub("%a[%w+.-]*://%S+", function(u)
+    return (" "):rep(#u)
+  end)
+  for pos, repo, n in scan:gmatch("()([%w_.-]+/[%w_.-]+)#(%d+)%f[^%w]") do
+    if pos == 1 or not scan:sub(pos - 1, pos - 1):match("[%w/]") then
+      add(pos, repo .. "#" .. n, forge.issue, repo, n)
+    end
+  end
+  for pos, n in scan:gmatch("()#(%d+)%f[^%w]") do
+    local before = pos > 1 and scan:sub(pos - 1, pos - 1) or " "
+    if not before:match("[%w_./&-]") then
+      add(pos, "#" .. n, forge.issue, r.repo, n)
+    end
+  end
+  for pos, n in scan:gmatch("()GH%-(%d+)%f[^%w]") do
+    if pos == 1 or not scan:sub(pos - 1, pos - 1):match("%w") then
+      add(pos, "GH-" .. n, forge.issue, r.repo, n)
+    end
+  end
+  for pos, n in scan:gmatch("()!(%d+)%f[^%w]") do
+    if pos == 1 or not scan:sub(pos - 1, pos - 1):match("[%w_./-]") then
+      add(pos, "!" .. n, forge.merge_request, r.repo, n)
+    end
+  end
+  table.sort(found, function(a, b)
+    return a.pos < b.pos
+  end)
+  local out = {}
+  for i = 1, math.min(#found, 10) do
+    out[i] = { text = found[i].text, url = found[i].url }
+  end
+  return out
+end
+
+--- The configured remote's URL, once per repository (false: none). `cb(url|false)`.
+---@param repo trellis.Repository
+---@param cb fun(url: string|false)
+function M.remote_url(repo, cb)
+  if repo.remote_url ~= nil then
+    return cb(repo.remote_url)
+  end
+  local cfg = require("trellis.config").for_repo(repo.root).permalink
+  local inv = require("trellis.git.argv").G33(cfg.remote)
+  require("trellis.git.runner").run(repo.root, inv.args, { kind = inv.kind }, function(err, res)
+    repo.remote_url = (not err and res and vim.trim(res.stdout) ~= "") and vim.trim(res.stdout)
+      or false
+    cb(repo.remote_url)
+  end)
 end
 
 local function copy(url)

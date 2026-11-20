@@ -119,7 +119,7 @@ function M.read_state(gitdir)
   elseif exists(gitdir .. "/BISECT_LOG") then
     state.kind = "bisect"
   end
-  -- Operations trellis starts are recorded by the safety layer (Phase 6); until then every
+  -- Operations trellis starts are recorded by the safety layer; until then every
   -- in-progress operation is external.
   state.external = state.kind ~= "clean"
   return state

@@ -1,4 +1,4 @@
---- Simulated history of a plan for the preview graph (research R10). Pure.
+--- Simulated history of a plan for the preview graph. Pure.
 ---
 --- Entries are applied in order onto the base: squash/fixup fold into the previous commit,
 --- drop and missing lines remove commits, reword changes the message. From the first

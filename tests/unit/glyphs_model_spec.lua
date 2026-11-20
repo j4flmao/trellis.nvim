@@ -1,4 +1,4 @@
--- T022 glyphs (styles, widths, overflow) and T023 model (struct-of-arrays, memory budget).
+-- Glyphs (styles, widths, overflow) and the graph model (struct-of-arrays, memory budget).
 local check = require("tests.helpers.graph_check")
 local layout = require("trellis.graph.layout")
 local glyphs = require("trellis.graph.glyphs")
@@ -145,7 +145,7 @@ T["model"]["50k commits stay within the memory budget (< 60 MB)"] = function()
   local ms = (vim.uv.hrtime() - t0) / 1e6
   collectgarbage("collect")
   local lua_kb = collectgarbage("count") - before
-  -- Buffer text estimate: graph prefix + short sha + subject per row (research R4 line layout).
+  -- Buffer text estimate: graph prefix + short sha + subject per row.
   local buf_bytes = 0
   for r = 1, m.loaded do
     buf_bytes = buf_bytes + #m.rows_text[r] + 10 + (m.rows_kind[r] == 1 and 50 or 0)

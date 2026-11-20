@@ -1,4 +1,4 @@
--- T020: graph layout engine, test-first. Invariants from data-model.md on hand-made shapes and
+-- Graph layout engine, test-first. Layout invariants (tests/helpers/graph_check.lua) on hand-made shapes and
 -- 1,000 random DAGs; fixture repositories are covered in tests/integration/layout_fixtures_spec.lua.
 local check = require("tests.helpers.graph_check")
 local layout = require("trellis.graph.layout")

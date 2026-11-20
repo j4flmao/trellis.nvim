@@ -1,4 +1,4 @@
---- Commit view (US2, FR-020): metadata, refs, parents (jumpable), message, changed files.
+--- Commit view: metadata, refs, parents (jumpable), message, changed files.
 local base = require("trellis.view.base")
 local config = require("trellis.config")
 local details = require("trellis.git.details")
@@ -23,8 +23,9 @@ end
 ---@param repo trellis.Repository
 ---@param d trellis.CommitDetails
 ---@param parent_subjects table<string, string>
+---@param links? { text: string, url: string }[] issue / pull request links in the message
 ---@return string[] lines, table<integer, table> items, table[] marks
-function M.render(repo, d, parent_subjects)
+function M.render(repo, d, parent_subjects, links)
   local lines, items, marks = {}, {}, {}
   local function add(text, item)
     lines[#lines + 1] = text
@@ -63,6 +64,12 @@ function M.render(repo, d, parent_subjects)
       { kind = "parent", sha = p, index = i }
     )
     mark(l, #label, #label + 7, "TrellisSha")
+  end
+  for i, link in ipairs(links or {}) do
+    local label = i == 1 and "Links:      " or "            "
+    local text = label .. link.text .. "  "
+    l = add(text .. link.url, { kind = "link", url = link.url })
+    mark(l, #text, #text + #link.url, "TrellisLink")
   end
   if d.signature then
     add(
@@ -161,6 +168,9 @@ local function handlers(v)
     end,
     open_diff = function()
       local it = item_under_cursor(v)
+      if it and it.kind == "link" then
+        return vim.ui.open(it.url)
+      end
       if it and it.kind == "parent" then
         return M.open(repo, it.sha, { reuse = true })
       end
@@ -257,6 +267,7 @@ function M.open(repo, rev, opts)
       end
       -- Parent subjects for the "Parent:" lines (one short command, only when there are parents).
       local subjects = {}
+      local remote
       local function show()
         hl.setup()
         local buf = base.create_buf({
@@ -267,7 +278,14 @@ function M.open(repo, rev, opts)
           filetype = "trelliscommit",
           vars = { sha = sha, parent_index = 1 },
         }, repo)
-        local lines, items, marks = M.render(repo, d, subjects)
+        local links = remote
+            and require("trellis.permalink").references(
+              d.body,
+              remote,
+              config.for_repo(repo.root).permalink.patterns
+            )
+          or {}
+        local lines, items, marks = M.render(repo, d, subjects, links)
         vim.bo[buf].modifiable = true
         vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
         vim.bo[buf].modifiable = false
@@ -305,8 +323,20 @@ function M.open(repo, rev, opts)
           opts.on_open(v)
         end
       end
+      -- Two short lookups in parallel: parent subjects and the remote (for issue links).
+      local pending = 2
+      local function done()
+        pending = pending - 1
+        if pending == 0 then
+          show()
+        end
+      end
+      require("trellis.permalink").remote_url(repo, function(url)
+        remote = url
+        done()
+      end)
       if #d.parents == 0 then
-        return show()
+        return done()
       end
       local inv = require("trellis.git.argv").G14(d.parents)
       require("trellis.git.runner").run(repo.root, inv.args, { kind = inv.kind }, function(_, res)
@@ -316,7 +346,7 @@ function M.open(repo, rev, opts)
             subjects[h] = s
           end
         end
-        show()
+        done()
       end)
     end)
   end)

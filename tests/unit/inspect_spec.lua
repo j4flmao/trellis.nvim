@@ -1,4 +1,4 @@
--- Pure pieces of US2: line mapping (also T060 groundwork), file-log parsing, content splitting.
+-- Pure pieces of the inspection views: line mapping, file-log parsing, content splitting.
 local T = MiniTest.new_set()
 local eq = MiniTest.expect.equality
 local linemap = require("trellis.linemap")

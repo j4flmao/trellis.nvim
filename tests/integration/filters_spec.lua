@@ -1,4 +1,4 @@
--- T100: filters (path with history simplification, author/grep/pickaxe with relayout), winbar
+-- Filters (path with history simplification, author/grep/pickaxe with relayout), winbar
 -- chips, the F filter editor (round trip, cursor kept), g/ whole-history search with cancel.
 local fixtures = require("tests.fixtures")
 local G = require("tests.helpers.graph")

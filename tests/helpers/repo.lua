@@ -1,4 +1,4 @@
---- Fixture repository builder (tasks.md T010). Deterministic: fixed author/committer names,
+--- Fixture repository builder. Deterministic: fixed author/committer names,
 --- dates advancing 60 s per commit, no signing, global/system git config ignored.
 ---
 --- ```lua

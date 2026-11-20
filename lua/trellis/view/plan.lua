@@ -1,4 +1,4 @@
---- Rebase plan buffer (US4, FR-041/042, research R12) and its preview window (T090/T091).
+--- Rebase plan buffer and its preview window.
 ---
 --- The plan is an ordinary editable buffer (`buftype=acwrite`): reorder with `dd`/`p`, `:m`,
 --- visual moves, macros or <M-j>/<M-k>; change actions by editing the word or with <M-…>

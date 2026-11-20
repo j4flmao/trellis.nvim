@@ -1,4 +1,4 @@
---- Conflict prediction for a plan without touching the worktree (research R10).
+--- Conflict prediction for a plan without touching the worktree.
 ---
 --- Exact (git ≥ 2.40): apply the plan in memory — for each commit, `git merge-tree
 --- --write-tree --merge-base=<c>^ <tip> <c>` (a cherry-pick of c onto the simulated tip), then

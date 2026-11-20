@@ -1,4 +1,4 @@
--- T074: every US5 action is journaled, backed up and undone to the exact previous state;
+-- Every history action is journaled, backed up and undone to the exact previous state;
 -- conflicts stop the operation and the conflict panel continues, skips or aborts it.
 local fixtures = require("tests.fixtures")
 local S = require("tests.helpers.safety")

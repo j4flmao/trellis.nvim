@@ -1,4 +1,4 @@
---- `:Trellis` arguments ↔ GraphQuery (data-model.md). Git-compatible option spelling.
+--- `:Trellis` arguments ↔ GraphQuery. Git-compatible option spelling.
 local M = {}
 
 ---@class trellis.GraphQuery

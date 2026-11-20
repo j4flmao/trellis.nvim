@@ -1,5 +1,5 @@
 --# selene: allow(incorrect_standard_library_use)
--- GIT_SEQUENCE_EDITOR helper (research R9, contracts/uri-and-buffers.md → Helpers).
+-- GIT_SEQUENCE_EDITOR helper.
 --
 --   GIT_SEQUENCE_EDITOR="<nvim> -l <helpers>/seq_editor.lua <planfile>"
 --   git runs it as: ... seq_editor.lua <planfile> <todo-path>

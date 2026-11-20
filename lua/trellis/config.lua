@@ -1,4 +1,4 @@
---- Configuration: defaults (contracts/commands-keymaps-config.md), validation, suggestions.
+--- Configuration: defaults, validation, suggestions.
 local M = {}
 
 ---@class trellis.Config
@@ -15,7 +15,6 @@ M.defaults = {
     show_backups = false,
     max_lanes = 40,
     date_format = "relative",
-    columns = { "graph", "sha", "refs", "subject", "author", "date" },
     max_decorations = 3,
     open = "tab",
     uncommitted = true,
@@ -30,7 +29,7 @@ M.defaults = {
   views = {
     commit = { split = "vertical" },
     diff = { side_by_side = "auto", open = "replace" },
-    filerev = { max_size = 5 * 1024 * 1024, lsp = false },
+    filerev = { max_size = 5 * 1024 * 1024 },
   },
   blame = {
     ignore_whitespace = true,
@@ -59,8 +58,11 @@ M.defaults = {
     remote = "origin",
     patterns = {},
   },
+  pick = {
+    backend = "auto",
+    limit = 20000,
+  },
   keymaps = true,
-  debug = false,
 }
 
 --- Fields whose accepted values are not simply "same type as the default".
@@ -71,14 +73,9 @@ local schema = {
   ["graph.open"] = { enum = { "tab", "vertical", "horizontal", "current" } },
   ["graph.uncommitted"] = { types = { "boolean" } },
   ["graph.default_revs"] = { list_of = "string" },
-  ["graph.columns"] = {
-    list_of = "string",
-    enum = { "graph", "sha", "refs", "subject", "author", "date" },
-  },
   ["views.commit.split"] = { enum = { "vertical", "horizontal", "tab", "current" } },
   ["views.diff.side_by_side"] = { types = { "string" } }, -- "auto" | "never" | adapter name
   ["views.diff.open"] = { types = { "string" }, enum = { "replace", "split" } },
-  ["views.filerev.lsp"] = { types = { "boolean", "string" }, enum = { false, "readonly" } },
   ["blame.detect_moves"] = { types = { "boolean", "string" }, enum = { false, "file", "copies" } },
   ["blame.ignore_revs_file"] = { types = { "string", "boolean" } },
   ["rebase.order"] = { enum = { "oldest_first", "newest_first" } },
@@ -87,6 +84,7 @@ local schema = {
   ["safety.confirm"] = { enum = { "always", "destructive", "never" } },
   ["safety.autostash"] = { enum = { "ask", "always", "never" } },
   ["permalink.patterns"] = { free = true },
+  ["pick.backend"] = { enum = { "auto", "snacks", "telescope", "fzf-lua", "select" } },
   ["keymaps"] = { types = { "boolean", "table" }, free = true },
 }
 

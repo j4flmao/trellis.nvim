@@ -1,4 +1,4 @@
---- File at a revision: `trellis://<sha>/<path>` and `trellis://:<n>/<path>` (FR-021/022/024).
+--- File at a revision: `trellis://<sha>/<path>` and `trellis://:<n>/<path>`.
 ---
 --- Content comes from `git cat-file --filters` (what checkout would write: eol and smudge
 --- filters applied). The buffer is read-only with the file's filetype; `:w` is refused with a

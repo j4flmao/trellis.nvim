@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Run the performance budget benchmarks against a large real repository, usually a Linux kernel
-# clone (Constitution III, spec SC-002, tasks.md T006/T120).
+# clone (Constitution III; numbers in docs/perf.md).
 #
 # Usage: scripts/bench_kernel.sh /path/to/linux
 #
@@ -23,7 +23,7 @@ if [ ! -e "$gitdir/objects/info/commit-graph" ] && [ ! -d "$gitdir/objects/info/
     echo "writing commit-graph for $repo"
     git -C "$repo" commit-graph write --reachable
   else
-    echo "warning: $repo has no commit-graph; first-screen budgets assume one (research R2)" >&2
+    echo "warning: $repo has no commit-graph; first-screen budgets assume one" >&2
   fi
 fi
 

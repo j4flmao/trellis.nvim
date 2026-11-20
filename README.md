@@ -42,6 +42,14 @@ diff of a file (zoomed with `<leader>wm`). The keys pressed are shown bottom rig
   `<M-m>` — next to a live preview of the resulting history. Conflicts are predicted before
   anything runs (`git merge-tree`). `:w` runs it with git's own `rebase -i`, and `:Trellis undo`
   puts everything back.
+- **Get lost commits back.** `:Trellis reflog` shows where HEAD has been and marks commits no
+  branch reaches any more; `gb` puts a branch on one.
+- **Stashes.** `:Trellis stash` lists them; `<CR>` shows the changes, `a` applies one (undoable;
+  trellis never drops a stash).
+- **Find a commit with your picker.** `:Trellis pick` (`gp` in the graph) uses Snacks, Telescope
+  or fzf-lua — whichever you have — or `vim.ui.select`.
+- **Issue and PR links.** `#12`, `GH-12`, `owner/repo#12` and GitLab's `!12` in a commit message
+  become links in the commit view (`<CR>` opens them).
 - **Permalinks** for lines or commits on GitHub, GitLab, Gitea/Codeberg and Bitbucket.
 - **Pure Lua, no dependencies.** Only the `git` command line; every command trellis runs is a
   documented, tested invocation ([docs/git-commands.md](docs/git-commands.md)), and the ones it
@@ -70,6 +78,9 @@ return {
       { "<leader>gB", "<cmd>Trellis blame<cr>", desc = "Trellis: blame time travel" },
       { "<leader>gF", "<cmd>Trellis file<cr>", desc = "Trellis: file history" },
       { "<leader>gO", "<cmd>Trellis ops<cr>", desc = "Trellis: operations (undo)" },
+      { "<leader>g/", "<cmd>Trellis pick<cr>", desc = "Trellis: find a commit" },
+      { "<leader>gR", "<cmd>Trellis reflog<cr>", desc = "Trellis: reflog (lost commits)" },
+      { "<leader>gz", "<cmd>Trellis stash<cr>", desc = "Trellis: stashes" },
     },
   },
 }
@@ -133,6 +144,7 @@ dependencies.
 | file | `:Trellis file` | history of the file, following renames |
 | file at a revision | `]r` / `[r` | newer / older revision of this file |
 | anywhere | `:Trellis undo` / `redo` / `ops` / `log` | undo, redo, the journal, git commands run |
+| anywhere | `:Trellis pick` / `reflog` / `stash` | find a commit / where HEAD has been / stashes |
 | any view | `g?` | keys of this view |
 
 Large repositories: write a commit-graph once (`git commit-graph write --reachable`, or

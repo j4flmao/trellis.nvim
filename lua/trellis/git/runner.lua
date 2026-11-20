@@ -1,5 +1,5 @@
 --- Spawning git: fixed global options and environment, never-run enforcement, command log.
---- Every git command trellis runs goes through `build()` (contracts/git-commands.md).
+--- Every git command trellis runs goes through `build()` (docs/git-commands.md).
 local M = {}
 
 --- Recent git invocations for `:Trellis log` (oldest first, capped).
@@ -16,7 +16,7 @@ local M = {}
 M.history = {}
 M.max_history = 1000
 
---- Subcommands trellis must never run (Constitution I, contracts/git-commands.md → Never run).
+--- Subcommands trellis must never run (Constitution I, docs/git-commands.md → Never run).
 M.forbidden = {
   push = true,
   gc = true,
@@ -108,7 +108,7 @@ function M.build(root, args, opts)
   else
     -- Writes never wait for an editor (cherry-pick --continue, revert, …): git runs these
     -- through sh, where ":" is a no-op, so the default message is kept. Callers that supply
-    -- messages override them (rebase helpers, Phase 7).
+    -- messages override them (rebase helpers).
     env.GIT_EDITOR = ":"
     env.GIT_SEQUENCE_EDITOR = ":"
   end

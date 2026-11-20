@@ -1,4 +1,4 @@
---- Fixture scenarios (tasks.md T011): discovery and on-disk cache.
+--- Fixture scenarios: discovery and on-disk cache.
 ---
 --- Scenario files live in tests/fixtures/build/*.lua and return a list of
 --- `{ name, desc, build = function(r, ctx) ... end }`. `build` may return a different Repo

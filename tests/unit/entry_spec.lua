@@ -1,4 +1,4 @@
--- T026 (command, URIs), T027 (view base). Synchronous; runs in the test process.
+-- Command, URIs and view base. Synchronous; runs in the test process.
 local T = MiniTest.new_set()
 local eq = MiniTest.expect.equality
 
@@ -56,7 +56,10 @@ T["commands"]["argument parsing and completion"] = function()
     { "graph", { "--author=alice", "--", "src/" } }
   )
   eq({ commands.parse({ "rebase", "HEAD~3" }) }, { "rebase", { "HEAD~3" } })
-  eq(commands.complete("re", "Trellis re"), { "rebase", "redo", "reset", "restore", "revert" })
+  eq(
+    commands.complete("re", "Trellis re"),
+    { "rebase", "redo", "reflog", "reset", "restore", "revert" }
+  )
   eq(commands.complete("", "Trellis rebase "), {})
   -- Every subcommand of the contract is known.
   for _, name in ipairs({

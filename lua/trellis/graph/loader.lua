@@ -1,11 +1,11 @@
---- Graph loader: G10 stream → log parser → layout → model, with backpressure (research R2).
+--- Graph loader: G10 stream → log parser → layout → model, with backpressure.
 ---
 --- The stream is paused while more than `prefetch_rows` rows are loaded beyond the deepest row
 --- the user has seen, and resumed when they scroll closer. `load_all()` (for `G`, search) reads
 --- to EOF. A loader is single-use: refresh creates a new one.
 ---
---- Provisional mode (`check_topo = true`, used for the fast first screen without commit-graph,
---- research R2): the input order is not guaranteed topological; as soon as a commit arrives
+--- Provisional mode (`check_topo = true`, used for the fast first screen without
+--- commit-graph): the input order is not guaranteed topological; as soon as a commit arrives
 --- whose parent is already drawn, loading stops with status "provisional_stopped" so the view
 --- can wait for the real topological stream.
 local argv = require("trellis.git.argv")

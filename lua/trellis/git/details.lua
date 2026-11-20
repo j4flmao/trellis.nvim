@@ -1,4 +1,4 @@
---- Commit details (G11–G13) with an LRU cache (`perf.details_cache`, data-model CommitDetails).
+--- Commit details (G11–G13) with an LRU cache (`perf.details_cache`).
 local argv = require("trellis.git.argv")
 local async = require("trellis.util.async")
 local runner = require("trellis.git.runner")

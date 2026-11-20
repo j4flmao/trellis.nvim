@@ -1,4 +1,4 @@
---- Run a plan with native `git rebase -i` (research R9, FR-043/045).
+--- Run a plan with native `git rebase -i`.
 ---
 --- trellis decides only the todo and the messages: GIT_SEQUENCE_EDITOR copies the planned todo
 --- over git's, GIT_EDITOR supplies planned messages (both are `nvim -l` helpers), so hooks,
@@ -87,7 +87,7 @@ function M.run(repo, plan, entries, diags)
     return nil, "nothing to do: the plan does not change history"
   end
 
-  -- Dirty worktree: autostash or cancel (FR-045, spec US4 scenario 7).
+  -- Dirty worktree: autostash or cancel.
   local autostash = false
   local dirty, entries_status = preflight.status(repo)
   if dirty then

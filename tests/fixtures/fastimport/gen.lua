@@ -1,4 +1,4 @@
--- Synthetic large repository generator via `git fast-import` (tasks.md T012).
+-- Synthetic large repository generator via `git fast-import`.
 --
 -- As a script:
 --   nvim -l tests/fixtures/fastimport/gen.lua <dir> [--commits N] [--merge-ratio R]

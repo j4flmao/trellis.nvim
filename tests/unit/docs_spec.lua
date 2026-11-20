@@ -1,4 +1,4 @@
--- T124 / Constitution VIII: every command, option, keymap, highlight group, event and public API
+-- Constitution VIII: every command, option, keymap, highlight group, event and public API
 -- function appears in doc/trellis.txt; the help file has valid tags.
 local T = MiniTest.new_set()
 local eq = MiniTest.expect.equality

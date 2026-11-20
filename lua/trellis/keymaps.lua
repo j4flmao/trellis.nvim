@@ -1,4 +1,4 @@
---- Default buffer-local keymaps per view (contracts/commands-keymaps-config.md) and their
+--- Default buffer-local keymaps per view and their
 --- resolution against `config.keymaps`. Views register handlers by action name.
 local M = {}
 
@@ -42,6 +42,7 @@ M.defaults = {
     { name = "yank_permalink", key = "gL", desc = "Copy permalink" },
     { name = "filters", key = "F", desc = "Edit filters" },
     { name = "search_all", key = "g/", desc = "Search entire history" },
+    { name = "pick", key = "gp", desc = "Find a commit with your picker" },
     { name = "undo", key = "u", desc = "Undo last trellis operation" },
   },
   commit = {
@@ -74,6 +75,16 @@ M.defaults = {
     { name = "prune", key = "P", desc = "Prune old backups (asks first)" },
   },
   log = {},
+  reflog = {
+    { name = "open_commit", key = "<CR>", desc = "Open commit" },
+    { name = "branch_create", key = "gb", desc = "Create a branch here (get a lost commit back)" },
+    { name = "checkout", key = "gco", desc = "Checkout this commit" },
+    { name = "yank_sha", key = "gy", desc = "Copy short sha" },
+  },
+  stash = {
+    { name = "show", key = "<CR>", desc = "Show the stash's changes" },
+    { name = "apply", key = "a", desc = "Apply to the worktree (undoable)" },
+  },
   linehistory = {
     { name = "open_commit", key = "<CR>", desc = "Open commit" },
     { name = "open_file", key = "o", desc = "Open file at this revision and line" },

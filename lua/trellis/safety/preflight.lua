@@ -1,4 +1,4 @@
---- Checks before an operation and the confirmation dialog (T073, Constitution I).
+--- Checks before an operation and the confirmation dialog (Constitution I).
 local argv = require("trellis.git.argv")
 local async = require("trellis.util.async")
 local backup = require("trellis.safety.backup")

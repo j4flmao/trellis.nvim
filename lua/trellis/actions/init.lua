@@ -1,4 +1,4 @@
---- History actions (US5, FR-050/051), each through the safety pipeline (safety/ops.lua):
+--- History actions, each through the safety pipeline (safety/ops.lua):
 --- preflight → preview + confirm → backup refs + journal → git → undoable with :Trellis undo.
 ---
 --- All functions are async (inside async.run via ops.spawn) and return `op, err`.
@@ -376,6 +376,46 @@ function M.reset(repo, rev, mode)
     reset_mode = mode,
     stash = mode == "hard" and dirty,
     commands = { argv.W25(mode, sha) },
+  })
+end
+
+--- Apply a stash entry to a clean worktree. The entry stays on the stash list; undo puts the
+--- worktree back (what is there then is kept in a backup stash first).
+---@param entry trellis.StashEntry
+function M.stash_apply(repo, entry)
+  local err = preflight.in_progress(repo)
+  if err then
+    return nil, err
+  end
+  local cerr = require_clean(repo, "Applying a stash")
+  if cerr then
+    return nil, cerr
+  end
+  if
+    not preflight.confirm({
+      title = ("Apply %s?"):format(entry.selector),
+      preview = {
+        "  " .. entry.message,
+        "  the entry stays on the stash list; :Trellis undo puts the worktree back",
+      },
+    })
+  then
+    return nil, "cancelled"
+  end
+  return ops.run(repo, {
+    kind = "stash-apply",
+    title = ("Apply %s (%s)"):format(entry.selector, entry.message),
+    refs = {},
+    applied = entry.sha,
+    commands = {},
+    run = function(op)
+      -- --index restores what was staged too; fall back to the content alone.
+      local e = backup.git(repo, argv.W28(entry.sha, true), { op_id = op.id })
+      if e then
+        e = backup.git(repo, argv.W28(entry.sha), { op_id = op.id })
+      end
+      return e
+    end,
   })
 end
 

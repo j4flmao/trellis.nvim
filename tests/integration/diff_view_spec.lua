@@ -1,4 +1,4 @@
--- T047 + T051: unified diff view (folds, navigation), side-by-side adapters (builtin
+-- Unified diff view (folds, navigation), side-by-side adapters (builtin
 -- :diffthis fallback), file history view with renames.
 local fixtures = require("tests.fixtures")
 local I = require("tests.helpers.inspect")

@@ -1,5 +1,5 @@
--- T084 (conflicts, abort, external rebases, stale plans, dirty worktree), T082 (prediction),
--- T090/T091 (plan buffer + preview). Runs in a child Neovim per case.
+-- Rebase conflicts, abort, external rebases, stale plans, dirty worktree, conflict prediction,
+-- plan buffer and preview. Runs in a child Neovim per case.
 local fixtures = require("tests.fixtures")
 local S = require("tests.helpers.safety")
 local Repo = require("tests.helpers.repo")

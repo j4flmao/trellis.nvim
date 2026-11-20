@@ -1,4 +1,4 @@
---- Side-by-side diff adapters (research R7, FR-023).
+--- Side-by-side diff adapters.
 ---
 --- `views.diff.side_by_side = "auto"` picks the first available adapter: user-registered ones
 --- (`require("trellis").register_diff_adapter`), then diffview.nvim, then the built-in

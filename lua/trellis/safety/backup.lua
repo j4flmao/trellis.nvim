@@ -1,4 +1,4 @@
---- Snapshots and backup refs (research R11, FR-060).
+--- Snapshots and backup refs.
 ---
 --- Before an operation moves refs, trellis records their raw values and writes
 --- `refs/trellis/backup/<op-id>/<refname without "refs/">` (plus `/HEAD` and, when uncommitted

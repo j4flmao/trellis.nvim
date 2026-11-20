@@ -69,6 +69,14 @@ Every git command trellis runs is listed here. Adding a new invocation requires 
 | G44 | `git commit-tree <tree> -p <tip> -m trellis-sim` | O | Creates dangling sim commit to chain G43 |
 | G45 | `git diff-tree -p -U0 --no-color --root <sha>` | R | Heuristic prediction cache |
 
+## Reflog & stash
+
+| ID | Command | Kind | Notes |
+|----|---------|------|-------|
+| G46 | `git reflog show -z --format=%H%x1f%gd%x1f%gs%x1f%ct%x1f%s -n <max> <ref>` | R | `:Trellis reflog`; exit 128 = no reflog |
+| G47 | `git rev-list --stdin --not --branches --tags --remotes HEAD` (reflog shas on stdin) | R | Marks reflog entries no ref reaches ("lost") |
+| G48 | `git stash list -z --format=%H%x1f%gd%x1f%ct%x1f%gs` | R | `:Trellis stash` |
+
 ## Writes (all journaled; backup first)
 
 | ID | Command | Kind | Notes |
@@ -85,7 +93,7 @@ Every git command trellis runs is listed here. Adding a new invocation requires 
 | W25 | `git reset --soft|--mixed|--hard <sha>` | W | `--hard` requires W02 first if dirty |
 | W26 | `git add -- <path>` (mark resolved) / `git checkout --ours|--theirs -- <path>` | W | Conflict panel |
 | W27 | `git commit-graph write --reachable` | O | Only on explicit user action or `perf.write_commit_graph = true` |
-| W28 | `git stash apply --index <sha>` (fallback without `--index` if the staged state cannot be restored) | W | Undo of a discarding operation |
+| W28 | `git stash apply --index <sha>` (fallback without `--index` if the staged state cannot be restored) | W | Undo of a discarding operation; stash view `a` (the entry stays on the stash list) |
 | W29 | `git hash-object -w --no-filters -- <path>` | O | Save a working-tree file before `restore_file` overwrites it |
 | W30 | `git reset --keep\|--soft\|--mixed <sha>` | W | Undo/redo moving the checked-out branch (`--keep` refuses to lose local changes) |
 | W31 | `git stash push -m <msg>` | W | Offered before an undo on a dirty worktree (never automatic) |

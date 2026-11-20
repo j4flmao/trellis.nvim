@@ -1,4 +1,4 @@
---- Map a line number between two versions of a file through `diff -U0` hunks (research R8).
+--- Map a line number between two versions of a file through `diff -U0` hunks.
 --- Pure function, used by revision stepping (`]r`/`[r`) and blame time travel.
 local M = {}
 

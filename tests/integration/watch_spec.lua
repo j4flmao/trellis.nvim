@@ -1,4 +1,4 @@
--- T032: external changes refresh the graph within 1 s, the cursor stays on the same commit,
+-- External changes refresh the graph within 1 s, the cursor stays on the same commit,
 -- bursts are debounced, and unrelated changes do not reload history.
 local fixtures = require("tests.fixtures")
 local G = require("tests.helpers.graph")

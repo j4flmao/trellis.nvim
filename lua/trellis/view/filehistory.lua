@@ -1,4 +1,4 @@
---- File history view (FR-022, `:Trellis file`): every commit that changed a file, following
+--- File history view (`:Trellis file`): every commit that changed a file, following
 --- renames. <CR> opens the commit, `o` the file at that revision, `d` the commit's diff of it.
 local argv = require("trellis.git.argv")
 local base = require("trellis.view.base")

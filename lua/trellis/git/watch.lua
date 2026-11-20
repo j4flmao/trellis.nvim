@@ -1,4 +1,4 @@
---- Repository change detection (research R5, FR-003).
+--- Repository change detection.
 ---
 --- Watches the git dir (HEAD, packed-refs, …) and the refs directories with libuv fs events;
 --- where recursive watching is unavailable (Linux inotify) every refs subdirectory gets its own

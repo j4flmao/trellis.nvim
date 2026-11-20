@@ -1,4 +1,4 @@
--- Demo repository for quickstart.md (scenarios S1–S5) and README recordings.
+-- Demo repository for manual walkthroughs and README recordings.
 --
 -- As a script:  nvim -l tests/fixtures/build/demo.lua /tmp/trellis-demo
 -- As a fixture: require("tests.fixtures").get("demo")
@@ -73,7 +73,7 @@ local function build(r)
 end
 
 if mode == "__fixture_module__" then
-  return { { name = "demo", desc = "quickstart demo repository", build = build } }
+  return { { name = "demo", desc = "demo repository", build = build } }
 end
 
 -- CLI: nvim -l tests/fixtures/build/demo.lua <dir>

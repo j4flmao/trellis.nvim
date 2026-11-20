@@ -1,4 +1,4 @@
--- Smoke tests for the test harness itself (tasks.md T003): if these fail, every other suite
+-- Smoke tests for the test harness itself: if these fail, every other suite
 -- is meaningless.
 
 local T = MiniTest.new_set()

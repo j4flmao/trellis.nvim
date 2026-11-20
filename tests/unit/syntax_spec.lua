@@ -1,5 +1,5 @@
 -- Every Lua file of the project compiles. A spec with a syntax error otherwise makes the
--- child-Neovim runner hang instead of failing (seen once in Phase 9).
+-- child-Neovim runner hang instead of failing (seen once during development).
 local T = MiniTest.new_set()
 local eq = MiniTest.expect.equality
 

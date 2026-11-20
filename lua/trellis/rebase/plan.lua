@@ -1,4 +1,4 @@
---- RebasePlan model (data-model.md → RebasePlan): build from a range, buffer lines ↔ entries,
+--- RebasePlan model: build from a range, buffer lines ↔ entries,
 --- validation, git todo serialization, autosquash.
 ---
 --- The plan buffer is the source of truth while editing: `parse_lines` turns its text into

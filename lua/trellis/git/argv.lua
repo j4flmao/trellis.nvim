@@ -1,4 +1,4 @@
---- Builders for every git invocation in contracts/git-commands.md, keyed by contract ID.
+--- Builders for every git invocation in docs/git-commands.md, keyed by contract ID.
 --- Each builder returns a `trellis.GitInvocation`; `runner.build()` adds the global options.
 --- tests/unit/git_argv_spec.lua checks that this table and the contract stay in sync.
 local M = {}
@@ -93,7 +93,7 @@ function M.G10(q)
   if q.order == "date" then
     args[#args + 1] = "--date-order"
   elseif q.order ~= "default" then
-    -- "default" = plain commit-date order: streams without a full walk (research R2, spike T028)
+    -- "default" = plain commit-date order: streams without a full walk
     args[#args + 1] = "--topo-order"
   end
   args[#args + 1] = "--format=" .. M.LOG_FORMAT
@@ -463,6 +463,50 @@ end
 --- Stash uncommitted changes before an undo (offered, never automatic).
 function M.W31(message)
   return inv("W31", "W", { "stash", "push", "-m", message })
+end
+
+-- Reflog and stash ---------------------------------------------------------------------------------
+
+M.REFLOG_FORMAT = "%H%x1f%gd%x1f%gs%x1f%ct%x1f%s"
+
+--- Reflog of `ref` (default HEAD), newest first.
+---@param ref? string
+---@param max? integer
+function M.G46(ref, max)
+  return inv(
+    "G46",
+    "R",
+    {
+      "reflog",
+      "show",
+      "-z",
+      "--format=" .. M.REFLOG_FORMAT,
+      "-n",
+      tostring(max or 500),
+      ref or "HEAD",
+    },
+    { ok_codes = { 128 } } -- a ref without reflog
+  )
+end
+
+--- Commits reachable from the shas on stdin (one per line) but not from any branch, tag,
+--- remote-tracking branch or HEAD; the input shas among them are the ones only the reflog
+--- still knows ("lost").
+function M.G47(shas)
+  return inv("G47", "R", {
+    "rev-list",
+    "--stdin",
+    "--not",
+    "--branches",
+    "--tags",
+    "--remotes",
+    "HEAD",
+  }, { stdin = table.concat(shas, "\n") .. "\n" })
+end
+
+--- Stash entries, newest first.
+function M.G48()
+  return inv("G48", "R", { "stash", "list", "-z", "--format=%H%x1f%gd%x1f%ct%x1f%gs" })
 end
 
 -- Reads used by the safety pipeline --------------------------------------------------------------
