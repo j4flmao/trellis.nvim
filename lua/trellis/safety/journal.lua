@@ -50,8 +50,8 @@ end
 ---@return (fun())? release, string? err
 function M.lock(repo)
   -- Two Neovims may create the directory at the same moment: that is not an error.
-  local ok, merr = require("trellis.util.fs").mkdirp(M.dir(repo))
-  if not ok then
+  local made, merr = require("trellis.util.fs").mkdirp(M.dir(repo))
+  if not made then
     return nil, merr
   end
   local path = M.dir(repo) .. "/ops.lock"
