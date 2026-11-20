@@ -320,7 +320,7 @@ function M.restore(repo, target, side, kind)
           if e then
             return e
           end
-          vim.fn.mkdir(vim.fs.dirname(full), "p")
+          require("trellis.util.fs").mkdirp(vim.fs.dirname(full))
           local fh = assert(io.open(full, "wb"))
           fh:write(res.stdout)
           fh:close()

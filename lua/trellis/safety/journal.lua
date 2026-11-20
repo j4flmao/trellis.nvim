@@ -49,7 +49,11 @@ end
 --- Acquire the journal lock; returns a release function or nil + error.
 ---@return (fun())? release, string? err
 function M.lock(repo)
-  vim.fn.mkdir(M.dir(repo), "p")
+  -- Two Neovims may create the directory at the same moment: that is not an error.
+  local ok, merr = require("trellis.util.fs").mkdirp(M.dir(repo))
+  if not ok then
+    return nil, merr
+  end
   local path = M.dir(repo) .. "/ops.lock"
   local deadline = uv.hrtime() + M.lock_timeout_ms * 1e6
   -- The timeout is for one holder that keeps the lock too long, not for the total wait: when

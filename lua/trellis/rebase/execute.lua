@@ -47,7 +47,7 @@ end
 --- Write the todo and the planned messages (by chain-head sha).
 function M.write_files(repo, plan, entries)
   local dir = M.plan_dir(repo, plan)
-  vim.fn.mkdir(dir .. "/msg", "p")
+  require("trellis.util.fs").mkdirp(dir .. "/msg")
   local f = assert(io.open(dir .. "/todo", "wb"))
   f:write(plan_mod.to_todo(plan, entries))
   f:close()

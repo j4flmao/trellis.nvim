@@ -164,5 +164,20 @@ T["events"]["unknown event is an error"] = function()
   end, "unknown event")
 end
 
+T["fs"] = MiniTest.new_set()
+
+T["fs"]["mkdirp: existing directories are fine, a file in the way is an error"] = function()
+  local fs = require("trellis.util.fs")
+  local base = vim.fn.tempname()
+  eq(fs.mkdirp(base .. "/a/b"), true)
+  eq(fs.mkdirp(base .. "/a/b"), true) -- again: already there (what a concurrent process sees)
+  local f = assert(io.open(base .. "/file", "w"))
+  f:close()
+  local ok, err = fs.mkdirp(base .. "/file")
+  eq(ok, false)
+  eq(type(err), "string")
+  vim.fn.delete(base, "rf")
+end
+
 -- async/debounce wait on the event loop: run every case in a child Neovim.
 return require("tests.helpers.child").run_in_child(T, "tests/unit/util_spec.lua")

@@ -519,7 +519,7 @@ function M.open(repo, plan, opts)
     state = {},
   }
   v.draft = function()
-    vim.fn.mkdir(drafts, "p")
+    require("trellis.util.fs").mkdirp(drafts)
     local f = io.open(drafts .. "/draft", "wb")
     if f then
       f:write(table.concat(vim.api.nvim_buf_get_lines(buf, 0, -1, false), "\n"), "\n")
