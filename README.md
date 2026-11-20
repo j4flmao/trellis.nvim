@@ -12,10 +12,10 @@ stash, `a` apply, `:Trellis undo` → `<leader>gB` blame, `[` one change back. K
 bottom right; recorded with [scripts/demo](scripts/demo).</sub>
 
 > [!NOTE]
-> **Status: 1.0 release candidate.** Every feature of the plan is in: graph, filters and
-> history search, inspection, blame time travel, undoable history actions, the visual rebase
-> planner and `:checkhealth trellis`. Before 1.0: kernel-scale benchmarks, Linux/macOS runs and
-> a usability round. See [docs/perf.md](docs/perf.md) for measurements.
+> **Status: 1.0 release candidate.** Every planned feature is in, tested on Linux, macOS and
+> Windows with Neovim 0.11–nightly and git 2.30–latest. Fast on repositories up to a few hundred
+> thousand commits; on the Linux kernel (1.5M commits) the first screen takes ~1 s and a full
+> load uses too much memory — see [docs/perf.md](docs/perf.md).
 
 ## Features
 

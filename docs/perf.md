@@ -45,12 +45,40 @@ trellis then shows a provisional first screen until the topological stream arriv
 
 ## Linux kernel
 
-Not measured yet: the numbers above are from the synthetic repository. Run
+Measured 2026-11-20 by the `bench-weekly.yml` job (run 44666852913): GitHub `ubuntu-latest`
+runner, Neovim 0.12.6, git 2.56.1, a `--filter=blob:none --no-checkout` clone of torvalds/linux
+with a commit-graph file, 1,507,472 commits.
+
+| Measure | Result | Budget | |
+|---|---|---|---|
+| Plugin startup (trellis's own cost) | 0.01 ms | < 1 ms | ✅ |
+| Redraw while holding `<C-d>`, p95 | 0.75 ms | < 16 ms | ✅ |
+| First screen, from the `:Trellis` call | 1036 ms | < 300 ms | ❌ |
+| Full history (`G`) | 75.5 s | < 20 s | ❌ |
+| Longest main-loop block during the full load | 206 ms | "stays responsive" (< 200 ms) | ❌ |
+| Memory growth for 50k commits (RSS) | 127 MB | < 60 MB | ❌ |
+| Memory after the full load (RSS of the whole Neovim) | 1771 MB | < 300 MB | ❌ |
+
+The same run on the 200k synthetic repository met every budget (first screen 15 ms, full load
+3.6 s, 48 MB per 50k commits). **The kernel budgets are not met yet.** What differs on the kernel,
+and the likely causes (not yet confirmed by profiling):
+
+- **Wide graphs.** The kernel has many long-lived parallel lanes (merge-heavy history): the graph
+  prefix of a row is far longer, so the buffer text per 50k rows is 13 MB instead of 4.9 MB, and
+  the lane layout does more work per commit. Rows are stored as full strings; a compact encoding
+  of the graph prefix (or rendering it only for visible rows, like the colors) would cut both
+  memory and load time.
+- **The "uncommitted changes" line on a checkout-less clone.** Without a checkout, `git status`
+  reports every tracked file (~90k) as deleted; parsing that on the main loop can delay the first
+  screen and explains part of the 206 ms block. Counting without keeping every entry, or skipping
+  the line when the worktree has no checkout, avoids it.
+- **Many tips.** The default revisions include every tag (~900 on the kernel); `--topo-order`
+  from many tips costs more before the first record, even with a commit-graph.
+
+Reproduce locally:
 
 ```sh
 git clone --filter=blob:none --no-checkout https://github.com/torvalds/linux /tmp/linux
 git -C /tmp/linux commit-graph write --reachable
 ./scripts/bench_kernel.sh /tmp/linux
 ```
-
-or let the weekly `bench-weekly.yml` job do it, and record the results here.
