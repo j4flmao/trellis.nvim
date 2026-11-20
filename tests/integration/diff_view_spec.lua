@@ -147,7 +147,7 @@ T[":Trellis file without argument uses the current file"] = function()
   eq(#I.lines(), 7)
 end
 
-T["graph keys: d, <Space> + =, <Tab>, o"] = function()
+T["graph keys: d, M + =, <Tab>, o"] = function()
   local r = fixtures.get("demo")
   local G = require("tests.helpers.graph")
   local v = G.open(r.path)
@@ -189,9 +189,9 @@ T["graph keys: d, <Space> + =, <Tab>, o"] = function()
     true
   )
   eq(I.find_line("^%+retry = 5$") ~= nil, true)
-  -- <Space> then =: compare two commits.
+  -- M then =: compare two commits.
   goto_sha(r:rev("main~1"))
-  press("<Space>")
+  press("M")
   eq(v.mark, r:rev("main~1"))
   goto_sha(r:rev("main"))
   vim.cmd("normal =")

@@ -257,7 +257,7 @@ end
 T["pick"]["Snacks.picker"] = function()
   local opts_seen
   local chosen, r = picked_with("snacks", function()
-    _G.Snacks = {
+    package.loaded.snacks = {
       picker = {
         pick = function(o)
           opts_seen = o

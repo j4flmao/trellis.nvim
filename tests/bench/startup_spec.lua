@@ -2,10 +2,8 @@
 local T = MiniTest.new_set()
 local eq = MiniTest.expect.equality
 
-T["plugin file startup cost"] = function()
-  local root = vim.fn.getcwd()
-  local file = root .. "/plugin/trellis.lua"
-  -- Warm up the file cache, then measure the median of 30 runs.
+--- Median time (ms) of sourcing `file` 30 times (after one warm-up).
+local function median_source_ms(file)
   local times = {}
   for i = 1, 31 do
     vim.g.loaded_trellis = nil
@@ -17,7 +15,21 @@ T["plugin file startup cost"] = function()
     end
   end
   table.sort(times)
-  local median = times[math.ceil(#times / 2)]
+  return times[math.ceil(#times / 2)]
+end
+
+T["plugin file startup cost"] = function()
+  local root = vim.fn.getcwd()
+  -- What trellis adds: sourcing plugin/trellis.lua minus sourcing an empty Lua file (the
+  -- fixed cost of :source itself, which shared CI runners make larger and noisier).
+  local empty = vim.fn.tempname() .. ".lua"
+  vim.fn.writefile({ "-- empty" }, empty)
+  local base = median_source_ms(empty)
+  local median = median_source_ms(root .. "/plugin/trellis.lua") - base
+  vim.fn.delete(empty)
+  io.stdout:write(
+    ("\n  bench %-28s %10.3f ms (+ %.3f ms for :source)"):format("plugin startup", median, base)
+  )
   eq({ under_1ms = median < 1, median_ms = math.floor(median * 1000) / 1000 }, {
     under_1ms = true,
     median_ms = math.floor(median * 1000) / 1000,

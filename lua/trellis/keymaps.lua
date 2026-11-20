@@ -28,7 +28,8 @@ M.defaults = {
     { name = "toggle_preview", key = "<Tab>", desc = "Toggle inline commit preview" },
     { name = "open_file", key = "o", desc = "Open a file of this commit at revision" },
     { name = "diff", key = "d", desc = "Diff commit against parent" },
-    { name = "toggle_mark", key = "<Space>", desc = "Mark commit for compare" },
+    -- Not <Space>: a buffer-local <Space> would swallow <leader> where mapleader is Space.
+    { name = "toggle_mark", key = "M", desc = "Mark commit for compare" },
     { name = "compare", key = "=", desc = "Diff marked commit with this one" },
     { name = "rebase", key = "gr", desc = "Rebase planner with this commit as base" },
     { name = "cherry_pick", key = "c", desc = "Cherry-pick", mode = { "n", "x" } },

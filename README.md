@@ -3,11 +3,13 @@
 > Git history you can walk through. A fast commit graph, any file at any commit, blame that
 > travels back in time, and history actions you can undo — all in real Neovim buffers.
 
-![trellis.nvim demo: open a Go project, blame, history graph, commit diffs](docs/media/trellis-demo.gif)
+![trellis.nvim demo: graph, commit view with issue links, picker, reflog rescue, stash apply and undo, blame time travel](docs/media/trellis-demo.gif)
 
-<sub>A real session in LazyVim on a Go project: `nvim .` → open `server.go` from the explorer →
-`<leader>gB` blame → `<leader>gT` history graph → `<Tab>` files of a commit → `<CR>` commit view →
-diff of a file (zoomed with `<leader>wm`). The keys pressed are shown bottom right.</sub>
+<sub>A real LazyVim session on a small Go project: open `server.go` → `<leader>gT` graph and
+`<Tab>` file list → `<CR>` commit view with issue links → diff of a file → `gp` find a commit with
+the picker → `<leader>gR` reflog: a commit lost by `reset --hard`, back with `gb` → `<leader>gz`
+stash, `a` apply, `:Trellis undo` → `<leader>gB` blame, `[` one change back. Keys pressed are shown
+bottom right; recorded with [scripts/demo](scripts/demo).</sub>
 
 > [!NOTE]
 > **Status: 1.0 release candidate.** Every feature of the plan is in: graph, filters and
@@ -132,7 +134,7 @@ dependencies.
 | graph | `F` / `g/` | edit filters (`--author=… -S… -- path`) / search all history |
 | graph | `<CR>` / `<Tab>` | commit view / inline file list |
 | graph | `o` / `d` | a file of the commit at that revision / the commit's diff |
-| graph | `<Space>` then `=` | compare two commits |
+| graph | `M` then `=` | compare two commits |
 | graph | `J` `K` / `]b` `[b` / `gH` / `G` | next commit / next ref / HEAD / load all |
 | graph | `gy` `gY` `gL` | copy short sha / full sha / permalink |
 | graph | `c` / `x` / `gco` / `gR` | cherry-pick (visual: several) / revert / checkout / reset |

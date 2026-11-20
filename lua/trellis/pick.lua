@@ -71,7 +71,8 @@ function M.backend(name)
   if name ~= "auto" then
     return name
   end
-  if type(_G.Snacks) == "table" and _G.Snacks.picker then
+  local snacks = package.loaded.snacks
+  if type(snacks) == "table" and snacks.picker then
     return "snacks"
   elseif has("telescope.pickers") then
     return "telescope"
@@ -84,7 +85,7 @@ end
 local backends = {}
 
 function backends.snacks(items, title, choose)
-  _G.Snacks.picker.pick({
+  package.loaded.snacks.picker.pick({
     source = "trellis_commits",
     title = title,
     items = items,

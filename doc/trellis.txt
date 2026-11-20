@@ -184,7 +184,7 @@ Default buffer-local keys (remap or disable them, see |trellis-keymaps|):
     <Tab>       toggle the commit's files and stats under its row
     o           open a file of this commit at that revision
     d           diff of the commit against its first parent
-    <Space>     mark the commit; again to unmark
+    M           mark the commit; again to unmark
     =           diff the marked commit against this one
     R           refresh
     <C-c>       stop loading
@@ -289,7 +289,7 @@ colorscheme.
     TrellisAuthor  TrellisDate      right-aligned author and date
     TrellisSubject                  subject
     TrellisFilter                   winbar filter chips
-    TrellisMarked                   graph row marked with <Space>
+    TrellisMarked                   graph row marked with `M`
     TrellisUncommitted              "uncommitted changes" line above the graph
     TrellisLink                     issue / pull request links in a commit view
     TrellisReflogLost               "lost" marker in the reflog view

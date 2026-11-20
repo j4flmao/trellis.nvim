@@ -848,7 +848,7 @@ local function handlers(v)
     compare = function()
       local sha = M.cursor_sha(v)
       if not v.mark then
-        return vim.notify("trellis: mark a commit with <Space> first")
+        return vim.notify("trellis: mark a commit first (M, see g?)")
       end
       if sha then
         require("trellis.view.diff").open(v.repo, v.mark, sha)
@@ -994,7 +994,7 @@ function M.toggle_preview(v)
   end)
 end
 
---- <Space>: mark the commit under the cursor for `=` (compare). Again to unmark.
+--- M: mark the commit under the cursor for `=` (compare). Again to unmark.
 function M.toggle_mark(v)
   local sha, _ = M.cursor_sha(v), nil
   if not sha then

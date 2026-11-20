@@ -41,6 +41,19 @@ T["editable views only use <M-…> keys or listed exceptions"] = function()
   end
 end
 
+T["no default key starts with <Space> (the usual <leader>)"] = function()
+  local bad = {}
+  for view, specs in pairs(keymaps.defaults) do
+    for _, spec in ipairs(specs) do
+      local k = spec.key:lower()
+      if k:sub(1, 7) == "<space>" or k:sub(1, 1) == " " or k:sub(1, 8) == "<leader>" then
+        bad[#bad + 1] = view .. "." .. spec.name
+      end
+    end
+  end
+  eq(bad, {})
+end
+
 T["keys are unique within a view"] = function()
   for view in pairs(keymaps.defaults) do
     if view ~= "common" then
