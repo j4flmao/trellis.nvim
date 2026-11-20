@@ -154,6 +154,14 @@ Neovim and keeps the cursor on the same commit.
 The winbar shows the repository, active filters, the commit count ("+" while
 loading) and the loading state.
 
+                                                   *trellis-uncommitted*
+When tracked files have staged or unstaged changes, a line above the graph
+says so ("◌ uncommitted changes: 2 staged, 1 unstaged"). On it, <CR> or `d`
+shows their diff against HEAD and <Tab> lists the files. It is updated with
+the graph and when you write a file of the repository, and only shown for
+graphs that include HEAD without path or commit filters. Untracked files are
+not counted. Turn it off with `graph.uncommitted = false`.
+
                                                         *trellis-graph-keys*
 Default buffer-local keys (remap or disable them, see |trellis-keymaps|):
 
@@ -211,6 +219,7 @@ Defaults (graph-related): >lua
         date_format = "relative",  -- "relative" | "iso" | strftime pattern
         max_decorations = 3,
         open = "tab",              -- "tab" | "vertical" | "horizontal" | "current"
+        uncommitted = true,        -- "uncommitted changes" line above HEAD
       },
       perf = {
         page_size = 2000,          -- lines appended per main-loop tick
@@ -225,6 +234,10 @@ Other options:
     perf.details_cache = 512       commit details kept in memory (LRU)
     views.commit.split = "vertical" where <CR> in the graph opens commits
     views.diff.side_by_side = "auto" |trellis-diff-adapters|
+    views.diff.open = "replace"    <CR> on a file in a commit view shows its
+                                   diff in that window; `q` goes back to the
+                                   commit. "split": a window of its own
+                                   (`views.commit.split`)
     views.filerev.max_size         bytes above which a revision shows a
                                    metadata page (5 MB)
     blame.*                        |trellis-blame|
@@ -268,6 +281,7 @@ colorscheme.
     TrellisSubject                  subject
     TrellisFilter                   winbar filter chips
     TrellisMarked                   graph row marked with <Space>
+    TrellisUncommitted              "uncommitted changes" line above the graph
     TrellisPreview                  <Tab> inline preview lines
     TrellisBlameAge0 … 4            blame heat, newest to oldest
     TrellisBlameUncommitted         "Not committed yet" lines

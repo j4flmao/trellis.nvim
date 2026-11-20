@@ -54,6 +54,36 @@ T["author and date are right-aligned virtual text, not buffer text"] = function(
   eq(buf_line:find("Bob", 1, true), nil)
 end
 
+T["narrow window: author and date give way to the subject instead of covering it"] = function()
+  open("demo")
+  -- Same graph, three widths: wide (both), medium (date only), narrow (neither).
+  local function first_row(width)
+    child.cmd("vertical resize " .. width)
+    child.cmd("redraw")
+    -- Only this window's cells (screen cells, not bytes: "●" is 3 bytes).
+    local cells = child.get_screenshot().text[2]
+    return table.concat(cells, "", 1, width)
+  end
+  child.cmd("vsplit | wincmd h")
+  local wide = first_row(88)
+  eq(wide:find("wire up validation", 1, true) ~= nil, true)
+  eq(wide:find("Bob", 1, true) ~= nil, true)
+  local subject_end =
+    vim.fn.strdisplaywidth(wide:sub(1, select(2, wide:find("wire up validation", 1, true))))
+  -- Room for the subject and the date, not for "Bob" as well.
+  local medium = first_row(subject_end + 2 + 16 + 2)
+  eq(medium:find("wire up validation", 1, true) ~= nil, true)
+  eq(medium:find("Bob", 1, true), nil)
+  eq(
+    { row = medium, date = medium:match("%d%d%d%d%-%d%d%-%d%d %d%d:%d%d%s*$") ~= nil },
+    { row = medium, date = true }
+  )
+  local narrow = first_row(subject_end + 3)
+  eq(narrow:find("wire up validation", 1, true) ~= nil, true)
+  eq(narrow:find("Bob", 1, true), nil)
+  eq(narrow:find("%d%d%d%d%-%d%d"), nil)
+end
+
 T["lane glyphs are highlighted with lane colors"] = function()
   open("demo")
   local _, shot = screen_lines()

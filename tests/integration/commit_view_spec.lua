@@ -136,6 +136,51 @@ T["<CR> on a file opens its unified diff, o the file at the revision"] = functio
   eq(vim.api.nvim_buf_get_name(0), "trellis://" .. r:rev("v1.0.0"):sub(1, 7) .. "/src/api.lua")
 end
 
+T["the diff replaces the commit view in its window; q comes back to the same line"] = function()
+  open("demo", "v1.0.0")
+  local wins = #vim.api.nvim_list_wins()
+  local win, commit_buf = vim.api.nvim_get_current_win(), vim.api.nvim_get_current_buf()
+  local lnum = I.find_line("src/api.lua")
+  vim.api.nvim_win_set_cursor(0, { lnum, 0 })
+  vim.cmd("normal \r")
+  eq(
+    vim.wait(3000, function()
+      return vim.bo.filetype == "diff"
+    end),
+    true
+  )
+  -- No extra window: the diff took the commit view's place.
+  eq({ #vim.api.nvim_list_wins(), vim.api.nvim_get_current_win() }, { wins, win })
+  local diff_buf = vim.api.nvim_get_current_buf()
+  vim.cmd("normal q")
+  eq(vim.api.nvim_get_current_buf(), commit_buf)
+  eq(vim.api.nvim_win_get_cursor(0)[1], lnum)
+  eq(#vim.api.nvim_list_wins(), wins)
+  eq(
+    vim.wait(1000, function()
+      return not vim.api.nvim_buf_is_valid(diff_buf)
+    end),
+    true
+  )
+  -- The commit view is still a normal (wiped when hidden) trellis buffer.
+  eq(vim.bo[commit_buf].bufhidden, "wipe")
+end
+
+T['views.diff.open = "split" keeps the old window per diff'] = function()
+  require("trellis").setup({ views = { diff = { open = "split" } } })
+  open("demo", "v1.0.0")
+  local wins = #vim.api.nvim_list_wins()
+  vim.api.nvim_win_set_cursor(0, { I.find_line("src/api.lua"), 0 })
+  vim.cmd("normal \r")
+  eq(
+    vim.wait(3000, function()
+      return vim.bo.filetype == "diff"
+    end),
+    true
+  )
+  eq(#vim.api.nvim_list_wins(), wins + 1)
+end
+
 T[":Trellis commit and the graph's <CR>"] = function()
   local r = fixtures.get("demo")
   vim.cmd("cd " .. r.path)

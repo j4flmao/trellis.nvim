@@ -1,7 +1,8 @@
 --- Commit graph view (US1): a real buffer filled by the loader in chunks, painted by a
 --- decoration provider for visible lines only (research R4), refreshed by the repo watcher.
 ---
---- Buffer line r is model row r. Commit rows read
+--- Buffer line `v.top + r` is model row r; `v.top` is 1 while the "uncommitted changes" line
+--- is shown above the graph, else 0. Commit rows read
 ---   <graph> <short sha> [(<decorations>)] <subject>
 --- with author and date as right-aligned virtual text, so `/` searches graph, sha, refs and
 --- subject. Colors are never stored as extmarks: on_line computes them from the model.
@@ -127,7 +128,7 @@ local update_winbar
 
 local function cursor_to_row(v, r)
   for _, win in ipairs(vim.fn.win_findbuf(v.bufnr)) do
-    pcall(vim.api.nvim_win_set_cursor, win, { r, 0 })
+    pcall(vim.api.nvim_win_set_cursor, win, { r + (v.top or 0), 0 })
   end
 end
 
@@ -155,10 +156,11 @@ local function flush(v)
       break
     end
   end
+  local top = v.top or 0
   if v.appended == 0 then
-    set_lines(v, 0, -1, lines)
+    set_lines(v, top, -1, lines)
   else
-    set_lines(v, v.appended, v.appended, lines)
+    set_lines(v, top + v.appended, top + v.appended, lines)
   end
   v.appended = to
   if v.restore_sha then
@@ -199,6 +201,7 @@ end
 local function show_message(v, text)
   v.message = text
   v.appended = 0
+  v.top, v.uncommitted = 0, nil
   set_lines(v, 0, -1, { text })
   update_winbar(v)
 end
@@ -312,6 +315,115 @@ local function new_loader(v, q, extra)
   return loader_mod.new(v.repo, q, opts)
 end
 
+-- Uncommitted changes line ------------------------------------------------------------------
+
+--- Show the line only for graphs that include HEAD, unfiltered (|trellis-uncommitted|).
+local function wants_uncommitted(v, q)
+  if not v.cfg.graph.uncommitted then
+    return false
+  end
+  local map = v.repo.refs
+  if not (map and map.head.sha) or #q.paths > 0 or query_mod.has_commit_filters(q) then
+    return false
+  end
+  for _, r in ipairs(q.revs) do
+    if r == "HEAD" or r == "@" or r == "--all" or (map.head.ref and r == map.head.ref) then
+      return true
+    end
+  end
+  return false
+end
+
+--- Insert, update or remove line 1 (the buffer shifts; cursors stay on the same commit).
+---@param u? { staged: integer, unstaged: integer, conflicted: integer, entries: table[] }
+local function set_uncommitted(v, u)
+  if not vim.api.nvim_buf_is_valid(v.bufnr) or v.message then
+    return
+  end
+  local text
+  if u then
+    local parts = {}
+    if u.conflicted > 0 then
+      parts[#parts + 1] = u.conflicted .. " conflicted"
+    end
+    if u.staged > 0 then
+      parts[#parts + 1] = u.staged .. " staged"
+    end
+    if u.unstaged > 0 then
+      parts[#parts + 1] = u.unstaged .. " unstaged"
+    end
+    text = "◌ uncommitted changes: " .. table.concat(parts, ", ")
+  end
+  local top = v.top or 0
+  v.uncommitted = u
+  if text and top == 1 then
+    if vim.api.nvim_buf_get_lines(v.bufnr, 0, 1, false)[1] ~= text then
+      set_lines(v, 0, 1, { text })
+    end
+    return
+  end
+  if (text and top == 1) or (not text and top == 0) then
+    return
+  end
+  local wins = vim.fn.win_findbuf(v.bufnr)
+  local cursors = {}
+  for i, w in ipairs(wins) do
+    cursors[i] = vim.api.nvim_win_get_cursor(w)
+  end
+  if text then
+    set_lines(v, 0, 0, { text })
+    v.top = 1
+  else
+    set_lines(v, 0, 1, {})
+    v.top = 0
+  end
+  local shift = v.top - top
+  for i, w in ipairs(wins) do
+    local line = math.max(1, cursors[i][1] + shift)
+    pcall(vim.api.nvim_win_set_cursor, w, { line, cursors[i][2] })
+  end
+end
+
+--- Ask git for the working tree state (G07) and update the line. Runs beside the history
+--- stream, so it never delays the first screen.
+local function refresh_uncommitted(v)
+  local q = effective_query(v)
+  if not wants_uncommitted(v, q) then
+    return set_uncommitted(v, nil)
+  end
+  local inv = require("trellis.git.argv").G07()
+  v.uncommitted_gen = (v.uncommitted_gen or 0) + 1
+  local gen = v.uncommitted_gen
+  require("trellis.git.runner").run(v.repo.root, inv.args, { kind = inv.kind }, function(err, res)
+    vim.schedule(function()
+      if gen ~= v.uncommitted_gen or not views[v.bufnr] then
+        return
+      end
+      if err then
+        return set_uncommitted(v, nil)
+      end
+      local u = { staged = 0, unstaged = 0, conflicted = 0, entries = {} }
+      for _, e in ipairs(require("trellis.git.parse.status").parse(res.stdout)) do
+        if e.kind == "unmerged" then
+          u.conflicted = u.conflicted + 1
+          u.entries[#u.entries + 1] = e
+        elseif e.kind == "changed" or e.kind == "renamed" then
+          local x, y = e.xy:sub(1, 1), e.xy:sub(2, 2)
+          if x ~= "." then
+            u.staged = u.staged + 1
+          end
+          if y ~= "." then
+            u.unstaged = u.unstaged + 1
+          end
+          u.entries[#u.entries + 1] = e
+        end
+      end
+      set_uncommitted(v, #u.entries > 0 and u or nil)
+    end)
+  end)
+end
+M.refresh_uncommitted = refresh_uncommitted
+
 --- (Re)start loading into the view. Keeps the buffer content until new rows arrive.
 start_loading = function(v)
   for _, l in ipairs({ v.loader, v.provisional }) do
@@ -350,7 +462,11 @@ start_loading = function(v)
         end
         v.shown = main
         v.appended = 0
-        v.message = nil
+        if v.message then
+          -- The buffer showed a message: the uncommitted line could not be added then.
+          v.message = nil
+          refresh_uncommitted(v)
+        end
         if v.provisional then
           v.provisional:cancel()
         end
@@ -415,17 +531,24 @@ start_loading = function(v)
   if filtered then
     main:load_all() -- result sets are small; the relayout needs all of them
   end
+  refresh_uncommitted(v)
   update_winbar(v)
 end
 
 -- Navigation -------------------------------------------------------------------------------
 
+--- Model row under the cursor (0 on the "uncommitted changes" line).
 local function cur_row(v)
   local win = vim.fn.bufwinid(v.bufnr)
   if win == -1 then
     return 1
   end
-  return vim.api.nvim_win_get_cursor(win)[1]
+  return vim.api.nvim_win_get_cursor(win)[1] - (v.top or 0)
+end
+
+--- True when the cursor is on the "uncommitted changes" line.
+local function on_uncommitted(v)
+  return (v.top or 0) > 0 and cur_row(v) < 1
 end
 
 --- Commit index under the cursor (nearest commit row above a connector row).
@@ -461,7 +584,7 @@ local function jump(v, pred, dir)
   end
   if target then
     vim.cmd("normal! m'")
-    vim.api.nvim_win_set_cursor(0, { target, 0 })
+    vim.api.nvim_win_set_cursor(0, { target + (v.top or 0), 0 })
   end
 end
 
@@ -543,6 +666,9 @@ local function handlers(v)
       end
     end,
     open_commit = function()
+      if on_uncommitted(v) then
+        return M.open_uncommitted(v)
+      end
       local sha = M.cursor_sha(v)
       if sha then
         require("trellis.view.commit").open(v.repo, sha, { split = v.cfg.views.commit.split })
@@ -590,6 +716,9 @@ local function handlers(v)
       end)
     end,
     diff = function()
+      if on_uncommitted(v) then
+        return M.open_uncommitted(v)
+      end
       local idx = M.cursor_commit(v)
       if not idx then
         return
@@ -777,7 +906,8 @@ function M.selected_shas(v)
   vim.api.nvim_feedkeys(vim.keycode("<Esc>"), "nx", false)
   local m = v.shown.model
   local out = {}
-  for r = a, math.min(b, v.appended) do
+  a, b = a - (v.top or 0), b - (v.top or 0)
+  for r = math.max(a, 1), math.min(b, v.appended) do
     if m.rows_kind[r] == 1 then
       out[#out + 1] = m.sha[m.rows_commit[r]]
     end
@@ -791,8 +921,40 @@ function M.cursor_sha(v)
   return idx and v.shown.model.sha[idx] or nil
 end
 
+--- <CR> / d on the uncommitted line: staged and unstaged changes against HEAD (G20).
+function M.open_uncommitted(v)
+  require("trellis.view.diff").open(v.repo, "HEAD", nil, { split = v.cfg.views.commit.split })
+end
+
+local XY = { M = "M", A = "A", D = "D", R = "R", C = "C", T = "T", U = "U" }
+
+--- <Tab> on the uncommitted line: its files, "staged/unstaged" letters like `git status -s`.
+local function toggle_uncommitted_preview(v)
+  v.previews = v.previews or {}
+  if v.previews.uncommitted then
+    pcall(vim.api.nvim_buf_del_extmark, v.bufnr, M.preview_ns, v.previews.uncommitted)
+    v.previews.uncommitted = nil
+    return
+  end
+  local u = v.uncommitted
+  if not u then
+    return
+  end
+  local vl = {}
+  for _, e in ipairs(u.entries) do
+    local x, y = e.xy:sub(1, 1), e.xy:sub(2, 2)
+    local name = e.orig_path and (e.orig_path .. " → " .. e.path) or e.path
+    vl[#vl + 1] = { { "  " .. (XY[x] or " ") .. (XY[y] or " ") .. " " .. name, "TrellisPreview" } }
+  end
+  v.previews.uncommitted =
+    vim.api.nvim_buf_set_extmark(v.bufnr, M.preview_ns, 0, 0, { virt_lines = vl })
+end
+
 --- <Tab>: files and stats of the commit as virtual lines under its row.
 function M.toggle_preview(v)
+  if on_uncommitted(v) then
+    return toggle_uncommitted_preview(v)
+  end
   local idx, row = M.cursor_commit(v)
   if not idx then
     return
@@ -819,8 +981,13 @@ function M.toggle_preview(v)
     if #vl == 0 then
       vl[1] = { { indent .. "(no changes)", "TrellisPreview" } }
     end
-    v.previews[sha] =
-      vim.api.nvim_buf_set_extmark(v.bufnr, M.preview_ns, row - 1, 0, { virt_lines = vl })
+    v.previews[sha] = vim.api.nvim_buf_set_extmark(
+      v.bufnr,
+      M.preview_ns,
+      row - 1 + (v.top or 0),
+      0,
+      { virt_lines = vl }
+    )
   end)
 end
 
@@ -837,7 +1004,13 @@ function M.toggle_mark(v)
   end
   v.mark = sha
   local _, row = M.cursor_commit(v)
-  vim.api.nvim_buf_set_extmark(v.bufnr, M.mark_ns, row - 1, 0, { line_hl_group = "TrellisMarked" })
+  vim.api.nvim_buf_set_extmark(
+    v.bufnr,
+    M.mark_ns,
+    row - 1 + (v.top or 0),
+    0,
+    { line_hl_group = "TrellisMarked" }
+  )
   vim.notify("trellis: marked " .. sha:sub(1, SHORT) .. " — press = on another commit to compare")
 end
 
@@ -953,13 +1126,23 @@ local function paint_graph(buf, row0, text, colors)
   end
 end
 
-local function on_line(_, _, buf, row0)
+local function on_line(_, win, buf, row0)
   local v = views[buf]
   local l = v and v.shown
   if not l or v.message then
     return
   end
-  local r = row0 + 1
+  local top = v.top or 0
+  if row0 < top then
+    vim.api.nvim_buf_set_extmark(buf, M.ns, row0, 0, {
+      end_row = row0 + 1,
+      hl_group = "TrellisUncommitted",
+      hl_eol = false,
+      ephemeral = true,
+    })
+    return
+  end
+  local r = row0 + 1 - top -- model row (row0 stays the buffer row for extmarks)
   local m = l.model
   if r > v.appended or not m.rows_text[r] then
     return
@@ -983,16 +1166,28 @@ local function on_line(_, _, buf, row0)
     end
     col = col + 1 -- ") "
   end
-  local fmt = v.cfg.graph.date_format
-  set(buf, M.ns, row0, 0, {
-    virt_text = {
-      { sanitize(m.author[idx]), "TrellisAuthor" },
-      { "  " .. time.format(m.time[idx], fmt), "TrellisDate" },
-    },
-    virt_text_pos = "right_align",
-    hl_mode = "combine",
-    ephemeral = true,
-  })
+  -- Author and date are right-aligned virtual text, which would cover the subject in a narrow
+  -- window: show both when they fit, else only the date, else nothing.
+  local author = sanitize(m.author[idx])
+  local date = time.format(m.time[idx], v.cfg.graph.date_format)
+  local avail = (v.text_width or {})[win]
+  local virt = { { author, "TrellisAuthor" }, { "  " .. date, "TrellisDate" } }
+  if avail then
+    local line = vim.api.nvim_buf_get_lines(buf, row0, row0 + 1, false)[1] or ""
+    local used = vim.api.nvim_strwidth(line) + 2
+    local dw = vim.api.nvim_strwidth(date)
+    if used + vim.api.nvim_strwidth(author) + 2 + dw > avail then
+      virt = used + dw <= avail and { { date, "TrellisDate" } } or nil
+    end
+  end
+  if virt then
+    set(buf, M.ns, row0, 0, {
+      virt_text = virt,
+      virt_text_pos = "right_align",
+      hl_mode = "combine",
+      ephemeral = true,
+    })
+  end
 end
 
 local provider_installed = false
@@ -1001,16 +1196,39 @@ local function install_provider()
     return
   end
   provider_installed = true
+  -- Writing a file of a repository updates the "uncommitted changes" line of its graphs.
+  vim.api.nvim_create_autocmd("BufWritePost", {
+    group = vim.api.nvim_create_augroup("trellis.graph.uncommitted", { clear = true }),
+    callback = function(ev)
+      local file = vim.fs.normalize(vim.fn.fnamemodify(ev.file, ":p"))
+      for _, v in pairs(views) do
+        if file:sub(1, #v.repo.root + 1) == v.repo.root .. "/" and not v.uncommitted_pending then
+          v.uncommitted_pending = true
+          vim.defer_fn(function()
+            v.uncommitted_pending = false
+            if views[v.bufnr] then
+              refresh_uncommitted(v)
+            end
+          end, 150)
+        end
+      end
+    end,
+  })
   vim.api.nvim_set_decoration_provider(M.ns, {
-    on_win = function(_, _, buf, _, botline)
+    on_win = function(_, win, buf, _, botline)
       local v = views[buf]
       if not v then
         return false
       end
+      -- Text columns of this window (without number/sign/fold columns), for on_line.
+      local info = vim.fn.getwininfo(win)[1]
+      v.text_width = v.text_width or {}
+      v.text_width[win] = info and (info.width - info.textoff) or nil
       -- Viewing near the end of loaded rows keeps the stream going (backpressure).
       local l = v.loader
-      if l and v.shown == l and botline + 1 > l.deepest then
-        local want = botline + 1
+      local seen = botline + 1 - (v.top or 0)
+      if l and v.shown == l and seen > l.deepest then
+        local want = seen
         vim.schedule(function()
           l:want(want)
         end)

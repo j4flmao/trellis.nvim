@@ -54,13 +54,14 @@ T["G loads the whole history and jumps to the oldest commit"] = function()
   vim.cmd("normal G")
   eq(
     vim.wait(20000, function()
-      return v.loader:done() and vim.api.nvim_win_get_cursor(0)[1] == v.appended
+      -- (+ v.top: the repository has no checkout, so the "uncommitted changes" line shows)
+      return v.loader:done() and vim.api.nvim_win_get_cursor(0)[1] == v.appended + (v.top or 0)
     end, 10),
     true
   )
   eq(v.loader.status, "complete")
   eq(v.shown.model.n, 20000)
-  eq(vim.api.nvim_buf_line_count(v.bufnr), v.shown.model.loaded)
+  eq(vim.api.nvim_buf_line_count(v.bufnr), v.shown.model.loaded + (v.top or 0))
   eq(vim.api.nvim_get_current_line():find("commit 1 on b1", 1, true) ~= nil, true)
 end
 

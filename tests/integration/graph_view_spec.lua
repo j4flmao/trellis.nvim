@@ -187,4 +187,101 @@ T["fast first screen: provisional view without commit-graph, replaced by topo or
   end
 end
 
+local function wait_line1(v, pred)
+  return vim.wait(5000, function()
+    return pred(vim.api.nvim_buf_get_lines(v.bufnr, 0, 1, false)[1] or "")
+  end, 10)
+end
+
+local function tracked_files(r)
+  return vim.split(vim.trim(r:out({ "ls-files" })), "\n")
+end
+
+T["uncommitted changes: a line above HEAD, its diff and files, gone once committed"] = function()
+  local graph = require("trellis.view.graph")
+  local r = fixtures.fresh("linear")
+  local tracked = tracked_files(r)
+  -- A new file staged, the tracked file edited and not staged.
+  r:write({ ["new.txt"] = "staged edit\n" })
+  r:git({ "add", "new.txt" })
+  r:write({ [tracked[1]] = "unstaged edit\n" })
+  local v = G.open(r.path)
+  eq(G.wait_loaded(v), true)
+  eq(
+    wait_line1(v, function(l)
+      return l == "◌ uncommitted changes: 1 staged, 1 unstaged"
+    end),
+    true
+  )
+  -- Line 2 is HEAD; the graph rows follow, one per model row.
+  local m = v.shown.model
+  eq(#G.lines(v), m.loaded + 1)
+  local line2 = vim.api.nvim_buf_get_lines(v.bufnr, 1, 2, false)[1]
+  eq(line2:find(m.sha[1]:sub(1, 7), 1, true) ~= nil, true)
+  -- On the line: no commit under the cursor; <Tab> lists the files.
+  vim.api.nvim_win_set_cursor(0, { 1, 0 })
+  eq(graph.cursor_commit(v), nil)
+  graph.toggle_preview(v) -- what <Tab> runs (":normal" drops a trailing <Tab>)
+  local marks = vim.api.nvim_buf_get_extmarks(v.bufnr, graph.preview_ns, 0, -1, { details = true })
+  local text = {}
+  for _, vl in ipairs(marks[1][4].virt_lines) do
+    text[#text + 1] = vl[1][1]
+  end
+  table.sort(text)
+  eq(text, { "   M " .. tracked[1], "  A  new.txt" })
+  -- J moves onto the first commit row.
+  vim.cmd("normal J")
+  eq(vim.api.nvim_win_get_cursor(0)[1], 2)
+  eq(graph.cursor_commit(v), m.rows_commit[1])
+  -- <CR> on the line: staged and unstaged changes against HEAD.
+  vim.api.nvim_win_set_cursor(0, { 1, 0 })
+  vim.cmd("normal \r")
+  eq(
+    vim.wait(3000, function()
+      return vim.bo.filetype == "diff"
+    end),
+    true
+  )
+  local diff = table.concat(vim.api.nvim_buf_get_lines(0, 0, -1, false), "\n")
+  eq(diff:find("+staged edit", 1, true) ~= nil, true)
+  eq(diff:find("+unstaged edit", 1, true) ~= nil, true)
+  vim.cmd("normal q")
+  -- Commit everything: after a refresh the line is gone and line 1 is the new HEAD.
+  r:git({ "commit", "-qam", "commit the edits" })
+  vim.api.nvim_set_current_buf(v.bufnr)
+  vim.cmd("normal R")
+  eq(
+    wait_line1(v, function(l)
+      return l:find("commit the edits", 1, true) ~= nil
+    end),
+    true
+  )
+  eq(v.top, 0)
+end
+
+T["uncommitted changes: :write updates the line; graph.uncommitted = false turns it off"] = function()
+  local r = fixtures.fresh("linear")
+  local tracked = tracked_files(r)
+  local v = G.open(r.path)
+  eq(G.wait_loaded(v), true)
+  vim.wait(300)
+  eq(v.top or 0, 0)
+  -- Edit and :write a tracked file in another window.
+  vim.cmd("split " .. vim.fn.fnameescape(r.path .. "/" .. tracked[1]))
+  vim.api.nvim_buf_set_lines(0, 0, -1, false, { "written from Neovim" })
+  vim.cmd("write")
+  eq(
+    wait_line1(v, function(l)
+      return l == "◌ uncommitted changes: 1 unstaged"
+    end),
+    true
+  )
+  vim.cmd("close")
+  -- Turned off: no line even with changes.
+  local v2 = G.open(r.path, { graph = { uncommitted = false } })
+  eq(G.wait_loaded(v2), true)
+  vim.wait(300)
+  eq(v2.top or 0, 0)
+end
+
 return require("tests.helpers.child").run_in_child(T, "tests/integration/graph_view_spec.lua")

@@ -20,7 +20,8 @@ diff of a file (zoomed with `<leader>wm`). The keys pressed are shown bottom rig
 - **Commit graph in a real buffer.** `:Trellis` streams history, so the first screen appears in
   about 100 ms even on a 200k-commit repository, and scrolling never waits for git. `/`, marks,
   `yy` and the jumplist work; refs read without color (`@main`, `~origin/main`, `#v1.0.0`). The
-  graph refreshes by itself when you commit, fetch or switch branches elsewhere.
+  graph refreshes by itself when you commit, fetch or switch branches elsewhere, and a line above
+  HEAD shows uncommitted changes (`<CR>` for their diff).
 - **Inspect anything.** `<CR>` opens a commit (metadata, parents, message, files and stats; merges
   against any parent). `o` opens a file *as it was* at that commit, with its filetype and
   Treesitter highlighting; `]r` / `[r` step through the file's revisions, following renames.

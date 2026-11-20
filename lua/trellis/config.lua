@@ -18,6 +18,7 @@ M.defaults = {
     columns = { "graph", "sha", "refs", "subject", "author", "date" },
     max_decorations = 3,
     open = "tab",
+    uncommitted = true,
   },
   perf = {
     page_size = 2000,
@@ -28,7 +29,7 @@ M.defaults = {
   },
   views = {
     commit = { split = "vertical" },
-    diff = { side_by_side = "auto" },
+    diff = { side_by_side = "auto", open = "replace" },
     filerev = { max_size = 5 * 1024 * 1024, lsp = false },
   },
   blame = {
@@ -68,6 +69,7 @@ local schema = {
   ["graph.style"] = { enum = { "ascii", "unicode", "rounded", "flog-symbols" } },
   ["graph.order"] = { enum = { "topo", "date" } },
   ["graph.open"] = { enum = { "tab", "vertical", "horizontal", "current" } },
+  ["graph.uncommitted"] = { types = { "boolean" } },
   ["graph.default_revs"] = { list_of = "string" },
   ["graph.columns"] = {
     list_of = "string",
@@ -75,6 +77,7 @@ local schema = {
   },
   ["views.commit.split"] = { enum = { "vertical", "horizontal", "tab", "current" } },
   ["views.diff.side_by_side"] = { types = { "string" } }, -- "auto" | "never" | adapter name
+  ["views.diff.open"] = { types = { "string" }, enum = { "replace", "split" } },
   ["views.filerev.lsp"] = { types = { "boolean", "string" }, enum = { false, "readonly" } },
   ["blame.detect_moves"] = { types = { "boolean", "string" }, enum = { false, "file", "copies" } },
   ["blame.ignore_revs_file"] = { types = { "string", "boolean" } },

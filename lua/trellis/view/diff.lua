@@ -41,6 +41,7 @@ end
 ---@field path? string
 ---@field old_path? string
 ---@field split? string
+---@field back_win? integer window of the view the diff was opened from (commit view)
 ---@field on_open? fun(buf: integer)
 
 --- Unified diff of `a`..`b` (b = nil: working tree), optionally limited to one file.
@@ -80,7 +81,36 @@ function M.open(repo, a, b, opts)
     vim.bo[buf].modifiable = false
     vim.bo[buf].filetype = "diff"
     local cfg = config.for_repo(repo.root)
-    base.open_slot(buf, opts.split or cfg.views.commit.split, "diff")
+    -- From a commit view, "replace" shows the diff in that view's window (q goes back) instead
+    -- of squeezing a third column next to the graph and the commit.
+    local back_win = opts.back_win
+    local back_buf = not opts.split
+      and cfg.views.diff.open == "replace"
+      and back_win
+      and vim.api.nvim_win_is_valid(back_win)
+      and vim.api.nvim_win_get_buf(back_win)
+    if back_buf then
+      vim.bo[back_buf].bufhidden = "hide" -- kept while the diff is in front
+      vim.api.nvim_set_current_win(back_win)
+      vim.api.nvim_win_set_buf(back_win, buf)
+      vim.api.nvim_create_autocmd("BufWipeout", {
+        buffer = buf,
+        once = true,
+        callback = function()
+          -- The diff went away some other way (:q, :bwipe): do not leave the commit view
+          -- hidden forever.
+          vim.schedule(function()
+            if vim.api.nvim_buf_is_valid(back_buf) and #vim.fn.win_findbuf(back_buf) == 0 then
+              pcall(vim.api.nvim_buf_delete, back_buf, { force = true })
+            elseif vim.api.nvim_buf_is_valid(back_buf) then
+              vim.bo[back_buf].bufhidden = "wipe"
+            end
+          end)
+        end,
+      })
+    else
+      base.open_slot(buf, opts.split or cfg.views.commit.split, "diff")
+    end
     local wo = vim.wo
     wo.foldmethod = "expr"
     wo.foldexpr = "v:lua.require'trellis.view.diff'.foldexpr(v:lnum)"
@@ -88,6 +118,12 @@ function M.open(repo, a, b, opts)
     wo.wrap = false
     base.apply_keymaps(buf, "diff", {
       close = function()
+        if back_buf and vim.api.nvim_buf_is_valid(back_buf) then
+          -- Back to the commit view in the same window (its cursor position is kept).
+          vim.api.nvim_win_set_buf(0, back_buf)
+          vim.bo[back_buf].bufhidden = "wipe"
+          return
+        end
         if #vim.api.nvim_list_wins() > 1 then
           vim.cmd("close")
         else

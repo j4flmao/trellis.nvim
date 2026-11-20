@@ -175,6 +175,7 @@ local function handlers(v)
           {
             path = f.path,
             old_path = f.old_path,
+            back_win = vim.api.nvim_get_current_win(),
           }
         )
       end

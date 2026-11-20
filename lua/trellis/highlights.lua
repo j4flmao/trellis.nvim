@@ -28,6 +28,7 @@ M.links = {
   TrellisSubject = "Normal",
   TrellisFilter = "WarningMsg",
   TrellisMarked = "Visual",
+  TrellisUncommitted = "DiagnosticWarn",
   -- Blame heat, newest (0) to oldest (4).
   TrellisBlameAge0 = "Title",
   TrellisBlameAge1 = "Identifier",
