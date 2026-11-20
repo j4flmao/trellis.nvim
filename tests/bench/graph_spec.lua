@@ -1,4 +1,4 @@
--- T033 / SC-002 budgets on the 200k-commit synthetic repository (commit-graph present):
+-- Budgets on the 200k-commit synthetic repository (commit-graph present):
 -- first screen < 300 ms, p95 redraw while scrolling < 16 ms, memory < 60 MB for 50k commits.
 -- A child Neovim with an attached UI (this process) does real redraws.
 local Repo = require("tests.helpers.repo")
@@ -17,7 +17,12 @@ T = MiniTest.new_set({
   },
 })
 
+-- TRELLIS_BENCH_REPO: a real repository instead (scripts/bench_kernel.sh, the Linux kernel).
+local REAL = vim.env.TRELLIS_BENCH_REPO
 local function repo_dir()
+  if REAL and REAL ~= "" then
+    return REAL
+  end
   return require("tests.fixtures.fastimport.gen").build(
     vim.env.TRELLIS_BENCH_REPO_200K or (Repo.root .. "/.tests/fixtures/synthetic-200k"),
     { commits = 200000, merge_ratio = 0.15 }
@@ -112,8 +117,13 @@ T["full history load (G) stays responsive"] = function()
   report("full load commits", res.n, "")
   report("longest main-loop block", res.max_gap, "ms")
   report("RSS after full load", res.rss, "MB")
-  eq(res.n, 200000)
-  -- SC-002 asks < 20 s for the kernel (1.3M); 200k must be far below.
+  if REAL then
+    -- The kernel budgets: full history < 20 s, the whole Neovim < 300 MB after it.
+    eq({ under_300mb = res.rss < 300 }, { under_300mb = true })
+  else
+    eq(res.n, 200000)
+  end
+  -- Asks < 20 s for the kernel (1.3M); 200k must be far below.
   eq({ under_20s = res.ms < 20000 }, { under_20s = true })
   -- Loading is time-sliced (4 ms of parsing/layout per turn); occasional longer gaps are GC.
   eq({ responsive = res.max_gap < 200 }, { responsive = true })
@@ -151,7 +161,8 @@ T["memory for 50k commits"] = function()
   report("RSS growth per 50k commits", res.rss_mb * 50000 / res.n, "MB")
   report("Lua heap growth", res.lua_mb, "MB")
   report("buffer text", res.buf_mb, "MB")
-  eq(res.n >= 40000 and res.n <= 60000, true)
+  -- Rows per commit depend on the history's shape: ~50k commits on the synthetic repository.
+  eq(res.n >= (REAL and 20000 or 40000) and res.n <= 60000, true)
   eq({ under_60mb = res.rss_mb * 50000 / res.n < 60 }, { under_60mb = true })
 end
 
